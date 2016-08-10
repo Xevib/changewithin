@@ -19,13 +19,16 @@ dir_path = os.path.dirname(os.path.abspath(__file__))
 parser = argparse.ArgumentParser(description='Generates an email digest of OpenStreetMap building and address changes.')
 parser.add_argument('--oscurl', type=str,
                    help='OSC file URL. For example: http://planet.osm.org/replication/hour/000/021/475.osc.gz. If none given, defaults to latest available day.')
+parser.add_argument('--config', type=str,
+                   help='Config file')
 args = parser.parse_args()
 
 #
 # Configure for use. See config.ini for details.
 #
+print args.config
 config = ConfigParser()
-config.read(os.path.join(dir_path, 'config.ini'))
+config.read(os.path.join(dir_path, args.config))
 
 #
 # Environment variables override config file.
