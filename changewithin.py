@@ -28,7 +28,10 @@ args = parser.parse_args()
 #
 print args.config
 config = ConfigParser()
-config.read(os.path.join(dir_path, args.config))
+if args.config:
+    config.read(os.path.join(dir_path, args.config))
+else:
+    config.read(os.path.join(dir_path, 'config.ini'))
 
 #
 # Environment variables override config file.
