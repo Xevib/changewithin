@@ -1,21 +1,36 @@
-import time, json, requests, os, sys
-from ConfigParser import ConfigParser
+import requests
+import json
+import os
+import sys
+from configparser import ConfigParser
 from lxml import etree
 from datetime import datetime
-import pystache
 import argparse
+from jinja2 import Environment
+import gettext
 
-from lib import (
-    get_bbox, get_osc, point_in_box, point_in_poly,
-    has_building_tag, get_address_tags, has_address_change, load_changeset,
-    add_changeset, add_node, html_tmpl, text_tmpl
-    )
+from lib import get_bbox, get_osc, point_in_box, point_in_poly, has_building_tag
+from lib import get_address_tags, has_address_change, load_changeset
+from lib import add_changeset, add_node
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
 
+jinja_env = Environment(extensions=['jinja2.ext.i18n'])
+lang = gettext.translation('messages', localedir='./locales/', languages=['ca', 'en'])
+lang.install()
+jinja_env.install_gettext_translations(gettext.translation('messages', localedir='./locales/', languages=['ca', 'en']))
+
+
+def get_template(template_name):
+    url = os.path.join('templates', template_name)
+    with open(url) as f:
+        template_text = f.read()
+    return jinja_env.from_string(template_text)
 #
 # Set up arguments and parse them.
 #
+text_tmpl = get_template('text_template.txt')
+html_tmpl = get_template('html_template.html')
 parser = argparse.ArgumentParser(description='Generates an email digest of OpenStreetMap building and address changes.')
 parser.add_argument('--oscurl', type=str,
                    help='OSC file URL. For example: http://planet.osm.org/replication/hour/000/021/475.osc.gz. If none given, defaults to latest available day.')
@@ -26,7 +41,7 @@ args = parser.parse_args()
 #
 # Configure for use. See config.ini for details.
 #
-print args.config
+print(args.config)
 config = ConfigParser()
 if args.config:
     config.read(os.path.join(dir_path, args.config))
@@ -157,22 +172,19 @@ if len(changesets) > 1000:
     
 now = datetime.now()
 
-html_version = pystache.render(html_tmpl, {
-    'changesets': changesets,
-    'stats': stats,
-    'date': now.strftime("%B %d, %Y")
-})
 
-text_version = pystache.render(text_tmpl, {
+template_data = {
     'changesets': changesets,
     'stats': stats,
     'date': now.strftime("%B %d, %Y")
-})
+}
+html_version = html_tmpl.render(**template_data)
+text_version = text_tmpl.render(**template_data)
 
 if config.has_option('mailgun', 'domain') and config.has_option('mailgun', 'api_key'):
     resp = requests.post(('https://api.mailgun.net/v2/%s/messages' % config.get('mailgun', 'domain')),
-        auth = ('api', config.get('mailgun', 'api_key')),
-        data = {
+        auth=('api', config.get('mailgun', 'api_key')),
+        data={
                 'from': 'Change Within <changewithin@%s>' % config.get('mailgun', 'domain'),
                 'to': config.get('email', 'recipients').split(),
                 'subject': 'OSM building and address changes %s' % now.strftime("%B %d, %Y"),
@@ -184,6 +196,6 @@ file_name = 'osm_change_report_%s.html' % now.strftime("%m-%d-%y")
 f_out = open(file_name, 'w')
 f_out.write(html_version.encode('utf-8'))
 f_out.close()
-print 'Wrote %s' % file_name
+print('Wrote {}'.format(file_name))
 
 os.unlink(osc_file)
