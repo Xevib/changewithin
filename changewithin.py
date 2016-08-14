@@ -15,22 +15,7 @@ from lib import add_changeset, add_node
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
 
-jinja_env = Environment(extensions=['jinja2.ext.i18n'])
-lang = gettext.translation('messages', localedir='./locales/', languages=['ca', 'en'])
-lang.install()
-jinja_env.install_gettext_translations(gettext.translation('messages', localedir='./locales/', languages=['ca', 'en']))
 
-
-def get_template(template_name):
-    url = os.path.join('templates', template_name)
-    with open(url) as f:
-        template_text = f.read()
-    return jinja_env.from_string(template_text)
-#
-# Set up arguments and parse them.
-#
-text_tmpl = get_template('text_template.txt')
-html_tmpl = get_template('html_template.html')
 parser = argparse.ArgumentParser(description='Generates an email digest of OpenStreetMap building and address changes.')
 parser.add_argument('--oscurl', type=str,
                    help='OSC file URL. For example: http://planet.osm.org/replication/hour/000/021/475.osc.gz. If none given, defaults to latest available day.')
@@ -47,6 +32,26 @@ if args.config:
     config.read(os.path.join(dir_path, args.config))
 else:
     config.read(os.path.join(dir_path, 'config.ini'))
+languages = ['en']
+if config.get('email', 'language'):
+    languages += config.get('email', 'language') + languages
+jinja_env = Environment(extensions=['jinja2.ext.i18n'])
+lang = gettext.translation('messages', localedir='./locales/', languages=languages)
+lang.install()
+jinja_env.install_gettext_translations(gettext.translation('messages', localedir='./locales/', languages=languages))
+
+
+def get_template(template_name):
+    url = os.path.join('templates', template_name)
+    with open(url) as f:
+        template_text = f.read()
+    return jinja_env.from_string(template_text)
+#
+# Set up arguments and parse them.
+#
+text_tmpl = get_template('text_template.txt')
+html_tmpl = get_template('html_template.html')
+
 
 #
 # Environment variables override config file.
@@ -63,6 +68,8 @@ if 'MAILGUN_API_KEY' in os.environ:
 if 'EMAIL_RECIPIENTS' in os.environ:
     config.set('email', 'recipients', os.environ['EMAIL_RECIPIENTS'])
 
+if 'LANGUAGE' in os.environ:
+    config.set('email', 'language', os.environ['LANGUAGE'])
 #
 # Get started with the area of interest (AOI).
 #
