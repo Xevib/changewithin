@@ -1,0 +1,26 @@
+<div style='font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#333;max-width:600px;'>
+    <p style='float:right;'>{{date}}</p>
+    <h1 style='margin-bottom:10px;'>{{_('Summary')}}</h1>
+    <ul style='font-size:15px;line-height:17px;list-style:none;margin-left:0;padding-left:0;'>
+        <li>{{_('Total changesets')}}: <strong>{{stats.total}}</strong></li>
+        <li>{{_('Total address changes')}}: <strong>{{stats.addresses}}</strong></li>
+        <li>{{_('Total building footprint changes')}}: <strong>{{stats.buildings}}</strong></li>
+    </ul>
+    {% if stats.limit_exceed %}
+        <p style='font-size:13px;font-style:italic;'>{{limit_exceed}}</p>
+    {% else %}
+    {% for change in changesets %}
+        <h2 style='border-bottom:1px solid #ddd;padding-top:15px;padding-bottom:8px;'>{{_('Changeset')}}<a href='http://openstreetmap.org/browse/changeset/{{changeset.id}}' style='text-decoration:none;color:#3879D9;'>#{{changeset.id}}</a></h2>
+        <p style='font-size:14px;line-height:17px;margin-bottom:20px;'>
+            <a href='http://openstreetmap.org/user/{{changeset.details}}{{changeset.user}}{{changeset.details}}' style='text-decoration:none;color:#3879D9;font-weight:bold;'>{{details}}{{user}}{{details}}</a>: {{changeset.comment}}
+        </p>
+        <p style='font-size:14px;line-height:17px;margin-bottom:0;'>
+            {{changeset.bldg_count}}{{_('Changed buildings')}} ({{changeset.buildings}}): {{changeset.wids}}<a href='http://openstreetmap.org/browse/way//history' style='text-decoration:none;color:#3879D9;'></a> {{changeset.wids}}{{changeset.bldg_count}}
+        </p>
+        <p style='font-size:14px;line-height:17px;margin-top:5px;margin-bottom:20px;'>
+            {{changeset.addr_count}}{{_('Changed addresses')}} ({{changeset.addresses}}): {{changeset.addr_chg_nids}}<a href='http://openstreetmap.org/browse/node//history' style='text-decoration:none;color:#3879D9;'>#</a> {{addr_chg_nids}}{{addr_chg_way}}<a href='http://openstreetmap.org/browse/way//history' style='text-decoration:none;color:#3879D9;'></a> {{changeset.addr_chg_way}}{{changeset.addr_count}}
+        </p>
+        <a href='{{changeset.map_link}}'><img src='{{changeset.map_img}}' style='border:1px solid #ddd;' /></a>
+    {% endfor%}
+    {% endif %}
+</div>

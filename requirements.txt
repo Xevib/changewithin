@@ -2,3 +2,4 @@ lxml
 pystache==0.5.3
 requests
 modestmaps>=1.4.2
+jinja2
