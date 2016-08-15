@@ -33,8 +33,10 @@ if args.config:
 else:
     config.read(os.path.join(dir_path, 'config.ini'))
 languages = ['en']
-if config.get('email', 'language'):
-    languages += config.get('email', 'language') + languages
+for option, value in config.items('email'):
+    if option == 'language':
+        languages = [value] + languages
+
 jinja_env = Environment(extensions=['jinja2.ext.i18n'])
 lang = gettext.translation('messages', localedir='./locales/', languages=languages)
 lang.install()
