@@ -1,4 +1,4 @@
-from lib import get_state, get_bbox
+from lib import get_state, get_bbox, point_in_box
 import unittest
 import json
 
@@ -13,6 +13,14 @@ class ChangesWithinTest(unittest.TestCase):
         bbox = get_bbox(girona['features'][0]['geometry']['coordinates'][0])
         self.assertEqual(bbox, [2.7831004, 41.9383698, 2.8982394, 42.0297266])
 
+    def test_point_in_box(self):
+        girona = json.load(open('test/girona.geojson'))
+        bbox = get_bbox(girona['features'][0]['geometry']['coordinates'][0])
+        x = 2.82004
+        y = 41.97744
+
+        self.assertTrue(point_in_box(x, y, bbox))
+        self.assertFalse(point_in_box(0, 0, bbox))
 
 if __name__ == '__main__':
     unittest.main()

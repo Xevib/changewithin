@@ -58,6 +58,12 @@ def get_osc(stateurl=None):
 
 
 def get_bbox(poly):
+    """
+    Returns the bbox  of the coordinates of a geometry
+
+    :param poly:
+    :return:
+    """
     box = [200, 200, -200, -200]
     for p in poly:
         if p[0] < box[0]: box[0] = p[0]
