@@ -46,7 +46,7 @@ jinja_env.install_gettext_translations(gettext.translation('messages', localedir
 
 
 def get_template(template_name):
-    url = os.path.join('templates', template_name)
+    url = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', template_name)
     with open(url) as f:
         template_text = f.read()
     return jinja_env.from_string(template_text)
