@@ -154,7 +154,8 @@ def get_address_tags(tags):
         if key.split(':')[0] == 'addr':
             addr_tags.append(t.attrib)
     return addr_tags
-    
+
+
 def has_address_change(gid, addr, version, elem):
     url = 'http://api.openstreetmap.org/api/0.6/%s/%s/history' % (elem, gid)
     r = requests.get(url)
@@ -166,7 +167,8 @@ def has_address_change(gid, addr, version, elem):
         return True
     else:
         for a in addr:
-            if a not in previous_addr: return True
+            if a not in previous_addr:
+                return True
     return False
 
 def load_changeset(changeset):
@@ -273,7 +275,14 @@ def get_polygon(wid):
             coords.append(lookup[n.get('ref')])
     return coords
 
+
 def get_point(node):
+    """
+    Returns the longitude and latitude from a node
+
+    :param node:
+    :return: [lon,lat]
+    """
     return [node["lon"], node["lat"]]
 
 def geojson_feature_collection(points=[], polygons=[]):

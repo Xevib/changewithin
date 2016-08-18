@@ -1,4 +1,4 @@
-from lib import get_state, get_bbox, point_in_box
+from lib import get_state, get_bbox, point_in_box, get_point
 import unittest
 import json
 
@@ -22,5 +22,8 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertTrue(point_in_box(x, y, bbox))
         self.assertFalse(point_in_box(0, 0, bbox))
 
+    def test_get_point(self):
+        self.assertEqual(get_point({'lat': 1, 'lon': 10}), [10 , 1])
+        
 if __name__ == '__main__':
     unittest.main()
