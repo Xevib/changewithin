@@ -74,6 +74,14 @@ def get_bbox(poly):
 
 
 def point_in_box(x, y, box):
+    """
+    Checks if a point is inside a bounding box
+
+    :param x: X coordinate
+    :param y: Y coordinate
+    :param box: Bounding box as a list
+    :return: Boolean
+    """
     return x > box[0] and x < box[2] and y > box[1] and y < box[3]
 
 
