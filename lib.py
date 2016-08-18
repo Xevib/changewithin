@@ -12,6 +12,11 @@ dir_path = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_state():
+    """
+    Downloads the state from OSM replication system
+
+    :return: Actual state as a str
+    """
     r = requests.get('http://planet.openstreetmap.org/replication/day/state.txt')
     return r.text.split('\n')[1].split('=')[1]
 
@@ -53,6 +58,12 @@ def get_osc(stateurl=None):
 
 
 def get_bbox(poly):
+    """
+    Returns the bbox  of the coordinates of a geometry
+
+    :param poly:
+    :return:
+    """
     box = [200, 200, -200, -200]
     for p in poly:
         if p[0] < box[0]: box[0] = p[0]
@@ -63,6 +74,14 @@ def get_bbox(poly):
 
 
 def point_in_box(x, y, box):
+    """
+    Checks if a point is inside a bounding box
+
+    :param x: X coordinate
+    :param y: Y coordinate
+    :param box: Bounding box as a list
+    :return: Boolean
+    """
     return x > box[0] and x < box[2] and y > box[1] and y < box[3]
 
 
@@ -135,7 +154,8 @@ def get_address_tags(tags):
         if key.split(':')[0] == 'addr':
             addr_tags.append(t.attrib)
     return addr_tags
-    
+
+
 def has_address_change(gid, addr, version, elem):
     url = 'http://api.openstreetmap.org/api/0.6/%s/%s/history' % (elem, gid)
     r = requests.get(url)
@@ -147,7 +167,8 @@ def has_address_change(gid, addr, version, elem):
         return True
     else:
         for a in addr:
-            if a not in previous_addr: return True
+            if a not in previous_addr:
+                return True
     return False
 
 def load_changeset(changeset):
@@ -254,7 +275,14 @@ def get_polygon(wid):
             coords.append(lookup[n.get('ref')])
     return coords
 
+
 def get_point(node):
+    """
+    Returns the longitude and latitude from a node
+
+    :param node:
+    :return: [lon,lat]
+    """
     return [node["lon"], node["lat"]]
 
 def geojson_feature_collection(points=[], polygons=[]):
