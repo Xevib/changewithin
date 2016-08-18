@@ -12,6 +12,11 @@ dir_path = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_state():
+    """
+    Downloads the state from OSM replication system
+
+    :return: Actual state as a str
+    """
     r = requests.get('http://planet.openstreetmap.org/replication/day/state.txt')
     return r.text.split('\n')[1].split('=')[1]
 

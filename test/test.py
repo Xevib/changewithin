@@ -1,5 +1,6 @@
-from lib import *
+from lib import get_state, get_bbox
 import unittest
+import json
 
 
 class ChangesWithinTest(unittest.TestCase):
