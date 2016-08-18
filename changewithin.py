@@ -37,10 +37,12 @@ for option, value in config.items('email'):
     if option == 'language':
         languages = [value] + languages
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+url_locales =os.path.join(dir_path, 'locales')
 jinja_env = Environment(extensions=['jinja2.ext.i18n'])
-lang = gettext.translation('messages', localedir='./locales/', languages=languages)
+lang = gettext.translation('messages', localedir=url_locales, languages=languages)
 lang.install()
-jinja_env.install_gettext_translations(gettext.translation('messages', localedir='./locales/', languages=languages))
+jinja_env.install_gettext_translations(gettext.translation('messages', localedir=url_locales, languages=languages))
 
 
 def get_template(template_name):
