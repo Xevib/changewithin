@@ -16,6 +16,10 @@ from lib import add_changeset, add_node
 
 class ChangesWithin(object):
     def __init__(self):
+        """
+        Initiliazes the class
+        """
+
         self.jinja_env = Environment(extensions=['jinja2.ext.i18n'])
         self.nodes = {}
         self.changesets = {}
@@ -29,12 +33,25 @@ class ChangesWithin(object):
         self.osc_url = ''
 
     def get_template(self, template_name):
+        """
+        Returns the template
+
+        :param template_name: Template name as a string
+        :return: Template
+        """
+
         url = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', template_name)
         with open(url) as f:
             template_text = f.read()
         return self.jinja_env.from_string(template_text)
 
     def load_config(self):
+        """
+        Loads the configuration from os env and config file
+
+        :return: None
+        """
+
         dir_path = os.path.dirname(os.path.abspath(__file__))
 
         parser = argparse.ArgumentParser(description='Generates an email digest of OpenStreetMap building and address changes.')
@@ -117,9 +134,20 @@ class ChangesWithin(object):
         self.osc_url = args.oscurl
 
     def get_config(self):
+        """
+        Returns the config of the class
+        :return: ConfigParser
+        """
+
         return self.config
 
     def load_file(self):
+        """
+        Loads the OSC file
+
+        :return: None
+        """
+
         sys.stderr.write('getting state\n')
         self.osc_file = get_osc(self.oscurl)
         sys.stderr.write('reading file\n')
@@ -127,6 +155,11 @@ class ChangesWithin(object):
         self.stats['addresses'] = 0
 
     def proces_data(self):
+        """
+        Proces the whole OSC file
+
+        :return: None
+        """
         sys.stderr.write('finding points\n')
 
         # Find nodes that fall within specified area
@@ -136,6 +169,11 @@ class ChangesWithin(object):
         self.stats['total'] = len(self.changesets)
 
     def proces_nodes(self):
+        """
+        Proces the nodes
+
+        :return: None
+        """
         # Find nodes that fall within specified area
         context = iter(etree.iterparse(self.osc_file, events=('start', 'end')))
         event, root = context.next()
@@ -169,6 +207,12 @@ class ChangesWithin(object):
         sys.stderr.write('finding changesets\n')
 
     def proces_ways(self):
+        """
+        Process the ways of the OSC file
+
+        :return: None
+        """
+
         sys.stderr.write('finding changesets\n')
         # Find ways that contain nodes that were previously determined to fall within specified area
         context = iter(etree.iterparse(self.osc_file, events=('start', 'end')))
@@ -207,6 +251,12 @@ class ChangesWithin(object):
             root.clear()
 
     def report(self):
+        """
+        Generates the report and sends it
+
+        :return: None
+        """
+
         if len(self.changesets) > 1000:
             self.changesets = self.changesets[:999]
             self.stats['limit_exceed'] = 'Note: For performance reasons only the first 1000 changesets are displayed.'
@@ -237,7 +287,6 @@ class ChangesWithin(object):
         f_out.write(html_version.encode('utf-8'))
         f_out.close()
         print('Wrote {}'.format(file_name))
-
         os.unlink(self.osc_file)
 
 if __name__ == '__main__':
