@@ -35,7 +35,7 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertEqual(c.get_config().sections(), sections)
         email_vals = [
             (u'recipients', u'someone@domain.com'),
-            (u'language', u'ca_ES')]
+            (u'language', u'ca')]
         self.assertEqual(c.get_config().items('email'), email_vals)
         area_vals = [
             (u'geojson', u'girona.geojson')
