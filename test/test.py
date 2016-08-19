@@ -34,16 +34,16 @@ class ChangesWithinTest(unittest.TestCase):
         sections = ['email', 'area', 'mailgun']
         self.assertEqual(c.get_config().sections(), sections)
         email_vals = [
-            ('recipients', 'someone@domain.com'),
-            ('language', 'ca_ES')]
+            (u'recipients', u'someone@domain.com'),
+            (u'language', u'ca_ES')]
         self.assertEqual(c.get_config().items('email'), email_vals)
         area_vals = [
-            ('geojson', 'girona.geojson')
+            (u'geojson', u'girona.geojson')
         ]
         self.assertEqual(c.get_config().items('area'), area_vals)
         mailgun_vals = [
-            ('domain', 'changewithin.mailgun.org'),
-            ('api_key', '1234')
+            (u'domain', u'changewithin.mailgun.org'),
+            (u'api_key', u'1234')
         ]
         self.assertEqual(c.get_config().items('mailgun'), mailgun_vals)
 
