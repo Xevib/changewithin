@@ -26,6 +26,27 @@ class ChangesWithinTest(unittest.TestCase):
 
     def test_get_point(self):
         self.assertEqual(get_point({'lat': 1, 'lon': 10}), [10 , 1])
-        
+
+    def test_config(self):
+        os.environ['CONFIG'] = 'test/test_config.ini'
+        c = ChangesWithin()
+        c.load_config()
+        sections = ['email', 'area', 'mailgun']
+        self.assertEqual(c.get_config().sections(), sections)
+        email_vals = [
+            ('recipients', 'someone@domain.com'),
+            ('language', 'ca_ES')]
+        self.assertEqual(c.get_config().items('email'), email_vals)
+        area_vals = [
+            ('geojson', 'girona.geojson')
+        ]
+        self.assertEqual(c.get_config().items('area'), area_vals)
+        mailgun_vals = [
+            ('domain', 'changewithin.mailgun.org'),
+            ('api_key', '1234')
+        ]
+        self.assertEqual(c.get_config().items('mailgun'), mailgun_vals)
+
+
 if __name__ == '__main__':
     unittest.main()
