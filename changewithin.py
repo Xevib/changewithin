@@ -26,6 +26,7 @@ class ChangesWithin(object):
         self.aoi_box = []
         self.aoi_poly = {}
         self.config = ConfigParser()
+        self.osc_url = ''
 
     def get_template(self, template_name):
         url = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', template_name)
@@ -113,13 +114,14 @@ class ChangesWithin(object):
 
         self.aoi_poly = aoi['features'][0]['geometry']['coordinates'][0]
         self.aoi_box = get_bbox(self.aoi_poly)
+        self.osc_url = args.oscurl
 
     def get_config(self):
         return self.config
 
     def load_file(self):
         sys.stderr.write('getting state\n')
-        self.osc_file = get_osc(args.oscurl)
+        self.osc_file = get_osc(self.oscurl)
         sys.stderr.write('reading file\n')
         self.stats['buildings'] = 0
         self.stats['addresses'] = 0
@@ -127,6 +129,13 @@ class ChangesWithin(object):
     def proces_data(self):
         sys.stderr.write('finding points\n')
 
+        # Find nodes that fall within specified area
+        self.proces_nodes()
+        self.proces_ways()
+        self.changesets = map(load_changeset, self.changesets.values())
+        self.stats['total'] = len(self.changesets)
+
+    def proces_nodes(self):
         # Find nodes that fall within specified area
         context = iter(etree.iterparse(self.osc_file, events=('start', 'end')))
         event, root = context.next()
@@ -157,9 +166,10 @@ class ChangesWithin(object):
                             self.stats['addresses'] += 1
             n.clear()
             root.clear()
-
         sys.stderr.write('finding changesets\n')
 
+    def proces_ways(self):
+        sys.stderr.write('finding changesets\n')
         # Find ways that contain nodes that were previously determined to fall within specified area
         context = iter(etree.iterparse(self.osc_file, events=('start', 'end')))
         event, root = context.next()
@@ -195,10 +205,6 @@ class ChangesWithin(object):
                             self.stats['addresses'] += 1
             w.clear()
             root.clear()
-
-        self.changesets = map(load_changeset, self.changesets.values())
-
-        self.stats['total'] = len(self.changesets)
 
     def report(self):
         if len(self.changesets) > 1000:
