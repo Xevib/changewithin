@@ -15,6 +15,10 @@ from lib import add_changeset, add_node
 
 
 class ChangesWithin(object):
+    """
+    Function that manages te changeswithin program
+    """
+    
     def __init__(self):
         """
         Initiliazes the class
