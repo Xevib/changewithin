@@ -18,7 +18,7 @@ class ChangesWithin(object):
     """
     Function that manages te changeswithin program
     """
-    
+
     def __init__(self):
         """
         Initiliazes the class
@@ -78,7 +78,7 @@ class ChangesWithin(object):
         languages = ['en']
         for option, value in self.config.items('email'):
             if option == 'language':
-                languages = [value] + languages
+                languages = [value].extend(languages)
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         url_locales = os.path.join(dir_path, 'locales')
