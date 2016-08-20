@@ -1,5 +1,5 @@
-''' Support functions for changewithin.py script.
-'''
+""" Support functions for changewithin.py script.
+"""
 import time, json, requests, os, sys
 import urllib
 from lxml import etree
@@ -17,11 +17,19 @@ def get_state():
 
     :return: Actual state as a str
     """
+
     r = requests.get('http://planet.openstreetmap.org/replication/day/state.txt')
     return r.text.split('\n')[1].split('=')[1]
 
 
 def get_osc(stateurl=None):
+    """
+    Function to downloat the osc file
+
+    :param stateurl: str with the url of the osc
+    :return: None
+    """
+
     if not stateurl:
         state = get_state()
 
@@ -62,8 +70,9 @@ def get_bbox(poly):
     Returns the bbox  of the coordinates of a geometry
 
     :param poly:
-    :return:
+    :return: Bounding box
     """
+
     box = [200, 200, -200, -200]
     for p in poly:
         if p[0] < box[0]: box[0] = p[0]
@@ -82,10 +91,20 @@ def point_in_box(x, y, box):
     :param box: Bounding box as a list
     :return: Boolean
     """
+
     return x > box[0] and x < box[2] and y > box[1] and y < box[3]
 
 
 def point_in_poly(x, y, poly):
+    """
+    To check if a point is inside a polygon
+
+    :param x: X coordiante
+    :param y: Y coordinate
+    :param poly: Polygon as a disc
+    :return: Boolean
+    """
+
     n = len(poly)
     inside = False
     p1x, p1y = poly[0]
@@ -101,7 +120,15 @@ def point_in_poly(x, y, poly):
         p1x, p1y = p2x, p2y
     return inside
 
+
 def get_extent(gjson):
+    """
+    Returns the extent of the geojson
+
+    :param gjson: Geojson as a dict
+    :return: bounding box extent as a list
+    """
+
     extent = {}
     m = MercatorProjection(0)
 
@@ -144,10 +171,24 @@ def get_extent(gjson):
 
 
 def has_building_tag(n):
+    """
+    Checks if a change has a building tag
+
+    :param n: lxml element
+    :return: Boolean
+    """
+
     return n.find(".//tag[@k='building']") is not None
 
 
 def get_address_tags(tags):
+    """
+    Returns the addr tags
+
+    :param tags: All tags
+    :return: Addr tags
+    """
+
     addr_tags = []
     for t in tags:
         key = t.get('k')
@@ -157,6 +198,16 @@ def get_address_tags(tags):
 
 
 def has_address_change(gid, addr, version, elem):
+    """
+    Checks if the the address tags has chanes on the change
+
+    :param gid: geometry id
+    :param addr: Actual addr tags
+    :param version: Version to check
+    :param elem: Type of element
+    :return: Boolean
+    """
+
     url = 'http://api.openstreetmap.org/api/0.6/%s/%s/history' % (elem, gid)
     r = requests.get(url)
     if not r.text: return False
@@ -171,7 +222,15 @@ def has_address_change(gid, addr, version, elem):
                 return True
     return False
 
+
 def load_changeset(changeset):
+    """
+    Loads data from a changeset
+
+    :param changeset: Changeset id
+    :return: Changeset
+    """
+
     changeset['wids'] = list(changeset['wids'])
     changeset['nids'] = changeset['nodes'].keys()
     changeset['addr_chg_nids'] = changeset['addr_chg_nd'].keys()
@@ -197,7 +256,17 @@ def load_changeset(changeset):
     changeset['bldg_count'] = len(changeset['wids'])
     return changeset
 
+
 def add_changeset(el, cid, changesets):
+    """
+    Add a changeset on the list of rellevant changesets
+
+    :param el:  Element
+    :param cid: Changeset id
+    :param changesets: list of changesets
+    :return: None
+    """
+    
     if not changesets.get(cid, False):
         changesets[cid] = {
             'id': cid,
@@ -209,7 +278,17 @@ def add_changeset(el, cid, changesets):
             'addr_chg_nd': {}
         }
 
+
 def add_node(el, nid, nodes):
+    """
+    Adds node to the list of rellevant nodes
+
+    :param el: Element
+    :param nid: Node id
+    :param nodes: List of nodes
+    :return: None
+    """
+
     if not nodes.get(nid, False):
         nodes[nid] = {
             'id': nid,
@@ -217,17 +296,33 @@ def add_node(el, nid, nodes):
             'lon': float(el.get('lon'))
         }
 
+
 def geojson_multi_point(coords):
+    """
+    Generates a multipoint geojson from coordinates
+
+    :param coords: Coordinates
+    :return: Geojson as a dict
+    """
+
     return {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "type": "MultiPoint",
-        "coordinates": coords
-      }
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+            "type": "MultiPoint",
+            "coordinates": coords
+        }
     }
 
+
 def geojson_polygon(coords):
+    """
+    Generates a multipoint geojson from coordinates
+
+    :param coords: Coordinates
+    :return: Geojson as a dict
+    """
+
     return {
       "type": "Feature",
       "properties": {},
@@ -237,7 +332,14 @@ def geojson_polygon(coords):
       }
     }
 
+
 def extract_coords(gjson):
+    """
+    Extract the coordinates from a geojson
+    :param gjson: geojson as a dict
+    :return: Coordinates
+    """
+
     coords = []
     for f in gjson['features']:
         if f['geometry']['type'] == 'Polygon':
@@ -249,11 +351,27 @@ def extract_coords(gjson):
             coords.append(f['geometry']['coordinates'])
     return coords
 
+
 def bbox_from_geojson(gjson):
+    """
+    Returns the bbox of a geojson
+
+    :param gjson: geojson as a dict
+    :return: Bbox
+    """
+
     b = get_bbox(extract_coords(gjson))
     return geojson_polygon([[[b[0], b[1]], [b[0], b[3]], [b[2], b[3]], [b[2], b[1]], [b[0], b[1]]]])
 
+
 def get_polygon(wid):
+    """
+    Get a polygon of a way
+
+    :param wid: Way id
+    :return: Way polygon
+    """
+
     coords = []
     query = '''
         [out:xml][timeout:25];
@@ -283,9 +401,19 @@ def get_point(node):
     :param node:
     :return: [lon,lat]
     """
+
     return [node["lon"], node["lat"]]
 
+
 def geojson_feature_collection(points=[], polygons=[]):
+    """
+    Generates a geojson feature collection from points and polygons
+
+    :param points: List of points
+    :param polygons: List of polygons
+    :return: Geojson feature collection as a dict
+    """
+
     collection = {"type": "FeatureCollection", "features": []}
     if len(points):
         collection["features"].append(geojson_multi_point(points))
