@@ -276,17 +276,17 @@ class ChangesWithin(object):
         text_version = self.text_tmpl.render(**template_data)
 
         if self.config.has_option('mailgun', 'domain') and self.config.has_option('mailgun', 'api_key'):
-            resp = requests.post(('https://api.mailgun.net/v2/%s/messages' % self.config.get('mailgun', 'domain')),
+            resp = requests.post(('https://api.mailgun.net/v2/{}/messages'.format( self.config.get('mailgun', 'domain'))),
                 auth=('api', self.config.get('mailgun', 'api_key')),
                 data={
-                        'from': 'Change Within <changewithin@%s>' % self.config.get('mailgun', 'domain'),
+                        'from': 'Change Within <changewithin{}s>'.format(self.config.get('mailgun', 'domain')),
                         'to': self.config.get('email', 'recipients').split(),
-                        'subject': 'OSM building and address changes %s' % now.strftime("%B %d, %Y"),
+                        'subject': 'OSM building and address changes {}'.format(now.strftime("%B %d, %Y")),
                         'text': text_version,
                         "html": html_version,
                 })
 
-        file_name = 'osm_change_report_%s.html' % now.strftime("%m-%d-%y")
+        file_name = 'osm_change_report_{}.html'.format(now.strftime('%m-%d-%y'))
         f_out = open(file_name, 'w')
         f_out.write(html_version.encode('utf-8'))
         f_out.close()
