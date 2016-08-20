@@ -405,7 +405,7 @@ def get_point(node):
     return [node["lon"], node["lat"]]
 
 
-def geojson_feature_collection(points=[], polygons=[]):
+def geojson_feature_collection(points=None, polygons=None):
     """
     Generates a geojson feature collection from points and polygons
 
