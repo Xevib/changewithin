@@ -35,23 +35,23 @@ def get_osc(stateurl=None):
 
         # zero-pad state so it can be safely split.
         state = '000000000' + state
-        path = '%s/%s/%s' % (state[-9:-6], state[-6:-3], state[-3:])
-        stateurl = 'http://planet.openstreetmap.org/replication/day/%s.osc.gz' % path
+        path = '{}/{}/{}'.format(state[-9:-6], state[-6:-3], state[-3:])
+        stateurl = 'http://planet.openstreetmap.org/replication/day/{}.osc.gz'.format(path)
 
-    sys.stderr.write('downloading %s...\n' % stateurl)
+    sys.stderr.write('downloading {}...\n'.format(stateurl))
     # prepare a local file to store changes
     handle, filename = mkstemp(prefix='change-', suffix='.osc.gz')
     os.close(handle)
-    status = os.system('wget --quiet %s -O %s' % (stateurl, filename))
+    status = os.system('wget --quiet {} -O {}'.format(stateurl, filename))
 
     if status:
-        status = os.system('curl --silent %s -o %s' % (stateurl, filename))
+        status = os.system('curl --silent {} -o {}'.format(stateurl, filename))
     
     if status:
         raise Exception('Failure from both wget and curl')
     
-    sys.stderr.write('extracting %s...\n' % filename)
-    os.system('gunzip -f %s' % filename)
+    sys.stderr.write('extracting {}...\n'.format(filename))
+    os.system('gunzip -f {}'.format(filename))
 
     # knock off the ".gz" suffix and return
     return filename[:-3]
@@ -208,11 +208,11 @@ def has_address_change(gid, addr, version, elem):
     :return: Boolean
     """
 
-    url = 'http://api.openstreetmap.org/api/0.6/%s/%s/history' % (elem, gid)
+    url = 'http://api.openstreetmap.org/api/0.6/{}/{}/history'.format(elem, gid)
     r = requests.get(url)
     if not r.text: return False
     e = etree.fromstring(r.text.encode('utf-8'))
-    previous_elem = e.find(".//%s[@version='%s']" % (elem, (version - 1)))
+    previous_elem = e.find(".//{}[@version='{}']".format(elem, (version - 1)))
     previous_addr = get_address_tags(previous_elem.findall(".//tag[@k]"))
     if len(addr) != len(previous_addr):
         return True
@@ -239,7 +239,7 @@ def load_changeset(changeset):
     polygons = map(get_polygon, changeset['wids'])
     gjson = geojson_feature_collection(points=points, polygons=polygons)
     extent = get_extent(gjson)
-    url = 'http://api.openstreetmap.org/api/0.6/changeset/%s' % changeset['id']
+    url = 'http://api.openstreetmap.org/api/0.6/changeset/{}'.format(changeset['id'])
     r = requests.get(url)
     if not r.text: return changeset
     t = etree.fromstring(r.text.encode('utf-8'))
@@ -248,10 +248,10 @@ def load_changeset(changeset):
     created_by = t.find(".//tag[@k='created_by']")
     if comment is not None: changeset['comment'] = comment.get('v')
     if created_by is not None: changeset['created_by'] = created_by.get('v')
-    changeset['map_img'] = 'http://api.tiles.mapbox.com/v3/lxbarth.map-lxoorpwz/geojson(%s)/%s,%s,%s/600x400.png' % (urllib.quote(json.dumps(gjson)), extent['lon'], extent['lat'], extent['zoom'])
+    changeset['map_img'] = 'http://api.tiles.mapbox.com/v3/lxbarth.map-lxoorpwz/geojson({})/{},{},{}/600x400.png'.format(urllib.quote(json.dumps(gjson)), extent['lon'], extent['lat'], extent['zoom'])
     if len(changeset['map_img']) > 2048:
-        changeset['map_img'] = 'http://api.tiles.mapbox.com/v3/lxbarth.map-lxoorpwz/geojson(%s)/%s,%s,%s/600x400.png' % (urllib.quote(json.dumps(bbox_from_geojson(gjson))), extent['lon'], extent['lat'], extent['zoom'])
-    changeset['map_link'] = 'http://www.openstreetmap.org/?lat=%s&lon=%s&zoom=%s&layers=M' % (extent['lat'], extent['lon'], extent['zoom'])
+        changeset['map_img'] = 'http://api.tiles.mapbox.com/v3/lxbarth.map-lxoorpwz/geojson({})/{},{},{}/600x400.png'.format(urllib.quote(json.dumps(bbox_from_geojson(gjson))), extent['lon'], extent['lat'], extent['zoom'])
+    changeset['map_link'] = 'http://www.openstreetmap.org/?lat={}&lon={}&zoom={}&layers=M'.format(extent['lat'], extent['lon'], extent['zoom'])
     changeset['addr_count'] = len(changeset['addr_chg_way']) + len(changeset['addr_chg_nids'])
     changeset['bldg_count'] = len(changeset['wids'])
     return changeset
