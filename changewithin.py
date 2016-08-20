@@ -149,7 +149,7 @@ class ChangesWithin(object):
         """
 
         sys.stderr.write('getting state\n')
-        self.osc_file = get_osc(self.oscurl)
+        self.osc_file = get_osc(self.osc_url)
         sys.stderr.write('reading file\n')
         self.stats['buildings'] = 0
         self.stats['addresses'] = 0
