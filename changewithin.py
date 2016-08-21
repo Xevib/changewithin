@@ -35,6 +35,7 @@ class ChangesWithin(object):
         self.aoi_poly = {}
         self.config = ConfigParser()
         self.osc_url = ''
+        self.tree = etree.ElementTree()
 
     def get_template(self, template_name):
         """
@@ -157,6 +158,7 @@ class ChangesWithin(object):
         sys.stderr.write('reading file\n')
         self.stats['buildings'] = 0
         self.stats['addresses'] = 0
+        self.tree = etree.parse(self.osc_file)
 
     def proces_data(self):
         """
@@ -167,6 +169,7 @@ class ChangesWithin(object):
         sys.stderr.write('finding points\n')
 
         # Find nodes that fall within specified area
+
         self.proces_nodes()
         self.proces_ways()
         self.changesets = map(load_changeset, self.changesets.values())
@@ -179,36 +182,32 @@ class ChangesWithin(object):
         :return: None
         """
         # Find nodes that fall within specified area
-        context = iter(etree.iterparse(self.osc_file, events=('start', 'end')))
-        event, root = context.next()
-        for event, n in context:
-            if event == 'start':
-                if n.tag == 'node':
-                    lon = float(n.get('lon', 0))
-                    lat = float(n.get('lat', 0))
-                    if point_in_box(lon, lat, self.aoi_box) and point_in_poly(lon, lat, self.aoi_poly):
-                        cid = n.get('changeset')
-                        nid = n.get('id', -1)
-                        add_node(n, nid, self.nodes)
-                        ntags = n.findall(".//tag[@k]")
-                        addr_tags = get_address_tags(ntags)
-                        version = int(n.get('version'))
+        #context = iter(etree.iterparse(self.osc_file, events=('start', 'end')))
 
-                        # Capture address changes
-                        if version != 1:
-                            if has_address_change(nid, addr_tags, version, 'node'):
-                                add_changeset(n, cid, self.changesets)
-                                self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                                self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
-                                self.stats['addresses'] += 1
-                        elif len(addr_tags):
-                            add_changeset(n, cid, self.changesets)
-                            self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                            self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
-                            self.stats['addresses'] += 1
-            n.clear()
-            root.clear()
-        sys.stderr.write('finding changesets\n')
+        elements = self.tree.xpath('//node')
+        for n in elements:
+            lon = float(n.get('lon', 0))
+            lat = float(n.get('lat', 0))
+            if point_in_box(lon, lat, self.aoi_box) and point_in_poly(lon, lat, self.aoi_poly):
+                cid = n.get('changeset')
+                nid = n.get('id', -1)
+                add_node(n, nid, self.nodes)
+                ntags = n.findall(".//tag[@k]")
+                addr_tags = get_address_tags(ntags)
+                version = int(n.get('version'))
+
+                # Capture address changes
+                if version != 1:
+                    if has_address_change(nid, addr_tags, version, 'node'):
+                        add_changeset(n, cid, self.changesets)
+                        self.changesets[cid]['nodes'][nid] = self.nodes[nid]
+                        self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
+                        self.stats['addresses'] += 1
+                elif len(addr_tags):
+                    add_changeset(n, cid, self.changesets)
+                    self.changesets[cid]['nodes'][nid] = self.nodes[nid]
+                    self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
+                    self.stats['addresses'] += 1
 
     def proces_ways(self):
         """
@@ -219,40 +218,36 @@ class ChangesWithin(object):
 
         sys.stderr.write('finding changesets\n')
         # Find ways that contain nodes that were previously determined to fall within specified area
-        context = iter(etree.iterparse(self.osc_file, events=('start', 'end')))
-        event, root = context.next()
-        for event, w in context:
-            if event == 'start':
-                if w.tag == 'way':
-                    relevant = False
-                    cid = w.get('changeset')
-                    wid = w.get('id', -1)
 
-                    # Only if the way has 'building' tag
-                    if has_building_tag(w):
-                        for nd in w.iterfind('./nd'):
-                            if nd.get('ref', -2) in self.nodes.keys():
-                                relevant = True
-                                add_changeset(w, cid, self.changesets)
-                                nid = nd.get('ref', -2)
-                                self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                                self.changesets[cid]['wids'].add(wid)
-                    if relevant:
-                        self.stats['buildings'] += 1
-                        wtags = w.findall(".//tag[@k]")
-                        version = int(w.get('version'))
-                        addr_tags = get_address_tags(wtags)
+        elements = self.tree.xpath('//way')
+        for w in elements:
+            relevant = False
+            cid = w.get('changeset')
+            wid = w.get('id', -1)
 
-                        # Capture address changes
-                        if version != 1:
-                            if has_address_change(wid, addr_tags, version, 'way'):
-                                self.changesets[cid]['addr_chg_way'].add(wid)
-                                self.stats['addresses'] += 1
-                        elif len(addr_tags):
-                            self.changesets[cid]['addr_chg_way'].add(wid)
-                            self.stats['addresses'] += 1
-            w.clear()
-            root.clear()
+            # Only if the way has 'building' tag
+            if has_building_tag(w):
+                for nd in w.iterfind('./nd'):
+                    if nd.get('ref', -2) in self.nodes.keys():
+                        relevant = True
+                        add_changeset(w, cid, self.changesets)
+                        nid = nd.get('ref', -2)
+                        self.changesets[cid]['nodes'][nid] = self.nodes[nid]
+                        self.changesets[cid]['wids'].add(wid)
+            if relevant:
+                self.stats['buildings'] += 1
+                wtags = w.findall(".//tag[@k]")
+                version = int(w.get('version'))
+                addr_tags = get_address_tags(wtags)
+
+                # Capture address changes
+                if version != 1:
+                    if has_address_change(wid, addr_tags, version, 'way'):
+                        self.changesets[cid]['addr_chg_way'].add(wid)
+                        self.stats['addresses'] += 1
+                elif len(addr_tags):
+                    self.changesets[cid]['addr_chg_way'].add(wid)
+                    self.stats['addresses'] += 1
 
     def report(self):
         """
