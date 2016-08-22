@@ -87,8 +87,8 @@ class ChangesWithinTest(unittest.TestCase):
         Function to test has_tag
         :return: None
         """
-        dir_path = os.path.dirname(os.path.abspath(__file__))
-        e1 = etree.parse(os.path.join(dir_path, 'test/test_hastag_1.xml'))
+        
+        e1 = etree.parse('test/test_hastag_1.xml')
         self.assertTrue(has_tag(e1, 'building'))
         self.assertTrue(has_tag(e1, 'build.*'))
         self.assertTrue(has_tag(e1, 'building', 'junk'))
