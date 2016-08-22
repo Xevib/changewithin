@@ -1,8 +1,9 @@
-from lib import get_state, get_bbox, point_in_box, get_point
+from lib import get_state, get_bbox, point_in_box, get_point, has_tag
 import unittest
 import json
 from changewithin import ChangesWithin
 import os
+from lxml import etree
 
 
 class ChangesWithinTest(unittest.TestCase):
@@ -61,24 +62,39 @@ class ChangesWithinTest(unittest.TestCase):
         :return: None
         """
 
-        os.environ['CONFIG'] = 'test/test_config.ini'
+        os.environ['CONFIG'] = 'test/test_config.conf'
         c = ChangesWithin()
         c.load_config()
         sections = ['email', 'area', 'mailgun']
-        self.assertEqual(c.get_config().sections(), sections)
-        email_vals = [
-            (u'recipients', u'someone@domain.com'),
-            (u'language', u'ca')]
-        self.assertEqual(c.get_config().items('email'), email_vals)
-        area_vals = [
-            (u'geojson', u'test/girona.geojson')
-        ]
-        self.assertEqual(c.get_config().items('area'), area_vals)
-        mailgun_vals = [
-            (u'domain', u'changewithin.mailgun.org'),
-            (u'api_key', u'1234')
-        ]
-        self.assertEqual(c.get_config().items('mailgun'), mailgun_vals)
+        self.assertEqual(c.get_config().keys(), sections)
+        email_vals = {
+            'recipients': 'someone@domain.com',
+            'language': 'ca'
+        }
+        self.assertEqual(c.get_config()['email'], email_vals)
+        area_vals = {
+            'geojson':'test/girona.geojson'
+        }
+        self.assertEqual(c.get_config()['area'], area_vals)
+        mailgun_vals = {
+            'domain': 'changewithin.mailgun.org',
+            'api_key': '1234'
+        }
+        self.assertEqual(c.get_config()['mailgun'], mailgun_vals)
+
+    def test_has_tag(self):
+        """
+        Function to test has_tag
+        :return: None
+        """
+        
+        e1 = etree.parse('test/test_hastag_1.xml')
+        self.assertTrue(has_tag(e1, 'building'))
+        self.assertTrue(has_tag(e1, 'build.*'))
+        self.assertTrue(has_tag(e1, 'building', 'junk'))
+        self.assertFalse(has_tag(e1, 'building', 'asfas'))
+        self.assertFalse(has_tag(e1, 'house'))
+
 
 
 if __name__ == '__main__':

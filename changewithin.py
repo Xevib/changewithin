@@ -2,7 +2,7 @@ import requests
 import json
 import os
 import sys
-from configparser import ConfigParser
+from configobj import ConfigObj
 from lxml import etree
 from datetime import datetime
 import argparse
@@ -11,7 +11,7 @@ import gettext
 
 from lib import get_bbox, get_osc, point_in_box, point_in_poly, has_building_tag
 from lib import get_address_tags, has_address_change, load_changeset
-from lib import add_changeset, add_node
+from lib import add_changeset, add_node, has_tag
 
 
 class ChangesWithin(object):
@@ -33,9 +33,13 @@ class ChangesWithin(object):
         self.html_tmpl = ''
         self.aoi_box = []
         self.aoi_poly = {}
-        self.config = ConfigParser()
+        self.config = ConfigObj()
         self.osc_url = ''
         self.tree = etree.ElementTree()
+        self.interest_tags = {
+            'node': [],
+            'way': []
+        }
 
     def get_template(self, template_name):
         """
@@ -73,13 +77,12 @@ class ChangesWithin(object):
             args.config = os.environ['CONFIG']
 
         if args.config:
-            self.config.read(os.path.join(dir_path, args.config))
+            self.config = ConfigObj(os.path.join(dir_path, args.config))
         else:
-            self.config.read(os.path.join(dir_path, 'config.ini'))
+            self.config = ConfigObj(os.path.join(dir_path, 'config.ini'))
         languages = ['en']
-        for option, value in self.config.items('email'):
-            if option == 'language':
-                languages = [value].extend(languages)
+        if 'language' in self.config['email']:
+            languages = [self.config['email']['language']].extend(languages)
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         url_locales = os.path.join(dir_path, 'locales')
@@ -104,26 +107,26 @@ class ChangesWithin(object):
         # Environment variables override config file.
         #
         if 'AREA_GEOJSON' in os.environ:
-            self.config.set('area', 'geojson', os.environ['AREA_GEOJSON'])
+            self.config['area']['geojson'] = os.environ['AREA_GEOJSON']
 
         if 'MAILGUN_DOMAIN' in os.environ:
-            self.config.set('mailgun', 'domain', os.environ['MAILGUN_DOMAIN'])
+            self.config['mailgun']['domain'] = os.environ['MAILGUN_DOMAIN']
 
         if 'MAILGUN_API_KEY' in os.environ:
-            self.config.set('mailgun', 'api_key', os.environ['MAILGUN_API_KEY'])
+            self.config['mailgun']['api_key'] = os.environ['MAILGUN_API_KEY']
 
         if 'EMAIL_RECIPIENTS' in os.environ:
-            self.config.set('email', 'recipients', os.environ['EMAIL_RECIPIENTS'])
+            self.config['email']['recipients'] = os.environ['EMAIL_RECIPIENTS']
 
-        if 'LANGUAGE' in os.environ:
-            self.config.set('email', 'language', os.environ['LANGUAGE'])
+        if 'EMAIL_LANGUAGE' in os.environ:
+            self.config['email']['language'] = os.environ['EMAIL_LANGUAGE']
 
 
         #
         # Get started with the area of interest (AOI).
         #
 
-        aoi_href = self.config.get('area', 'geojson')
+        aoi_href = self.config['area']['geojson']
         aoi_file = os.path.join(dir_path, aoi_href)
 
         if os.path.exists(aoi_file):
@@ -137,6 +140,14 @@ class ChangesWithin(object):
         self.aoi_poly = aoi['features'][0]['geometry']['coordinates'][0]
         self.aoi_box = get_bbox(self.aoi_poly)
         self.osc_url = args.oscurl
+
+        for tag in self.config.get('tags', {}):
+            conf_tag = self.config['tags'][tag]['tags'].split('=')
+            watch_tag = {'k': conf_tag[0], 'v': conf_tag[1]}
+            if 'node' in self.config['tags'][tag]['type'].split(','):
+                self.interest_tags['node'].append(watch_tag)
+            if 'way' in self.config['tags'][tag]['type'].split(','):
+                self.interest_tags['way'].append(watch_tag)
 
     def get_config(self):
         """
@@ -192,22 +203,23 @@ class ChangesWithin(object):
                 cid = n.get('changeset')
                 nid = n.get('id', -1)
                 add_node(n, nid, self.nodes)
-                ntags = n.findall(".//tag[@k]")
-                addr_tags = get_address_tags(ntags)
-                version = int(n.get('version'))
+                if has_tag(n, 'addr:.*'):
+                    ntags = n.findall(".//tag[@k]")
+                    addr_tags = get_address_tags(ntags)
+                    version = int(n.get('version'))
 
-                # Capture address changes
-                if version != 1:
-                    if has_address_change(nid, addr_tags, version, 'node'):
+                    # Capture address changes
+                    if version != 1:
+                        if has_address_change(nid, addr_tags, version, 'node'):
+                            add_changeset(n, cid, self.changesets)
+                            self.changesets[cid]['nodes'][nid] = self.nodes[nid]
+                            self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
+                            self.stats['addresses'] += 1
+                    elif len(addr_tags):
                         add_changeset(n, cid, self.changesets)
                         self.changesets[cid]['nodes'][nid] = self.nodes[nid]
                         self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
                         self.stats['addresses'] += 1
-                elif len(addr_tags):
-                    add_changeset(n, cid, self.changesets)
-                    self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                    self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
-                    self.stats['addresses'] += 1
 
     def proces_ways(self):
         """
@@ -270,12 +282,12 @@ class ChangesWithin(object):
         html_version = self.html_tmpl.render(**template_data)
         text_version = self.text_tmpl.render(**template_data)
 
-        if self.config.has_option('mailgun', 'domain') and self.config.has_option('mailgun', 'api_key'):
-            resp = requests.post(('https://api.mailgun.net/v2/{0}/messages'.format( self.config.get('mailgun', 'domain'))),
-                auth=('api', self.config.get('mailgun', 'api_key')),
+        if 'domain' in self.config['mailgun'] and 'api_key' in self.config['mailgun']:
+            resp = requests.post(('https://api.mailgun.net/v2/{0}/messages'.format( self.config['mailgun']['domain'])),
+                auth=('api', self.config['mailgun']['api_key']),
                 data={
-                        'from': 'Change Within <changewithin@{}>'.format(self.config.get('mailgun', 'domain')),
-                        'to': self.config.get('email', 'recipients').split(),
+                        'from': 'Change Within <changewithin@{}>'.format(self.config['mailgun']['domain']),
+                        'to': self.config['email']['recipients'].split(),
                         'subject': 'OSM building and address changes {0}'.format(now.strftime("%B %d, %Y")),
                         'text': text_version,
                         "html": html_version,
