@@ -1,6 +1,11 @@
 """ Support functions for changewithin.py script.
 """
-import time, json, requests, os, sys
+import time
+import json
+import requests
+import os
+import sys
+import re
 import urllib
 from lxml import etree
 from ModestMaps.Geo import MercatorProjection
@@ -168,6 +173,30 @@ def get_extent(gjson):
             extent['zoom'] = c1.zoom
         
     return extent
+
+
+def has_tag(element, key, value=None):
+    """
+    Checks if a Element has a tag
+
+    :param element: Lxml Eelment
+    :param key: Key value
+    :param value: Value
+    :return: Boolean
+    """
+
+    re_key = re.compile(key)
+    if value:
+        re_value = re.compile(value)
+    tag_elements = element.findall(".//tag")
+    for e in tag_elements:
+        if value:
+            if re.match(re_key, e.attrib['k']) and re.match(re_value, e.attrib['v']):
+                return True
+        else:
+            if re.match(re_key, e.attrib['k']):
+                return True
+
 
 
 def has_building_tag(n):
