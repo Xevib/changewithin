@@ -10,6 +10,7 @@ from jinja2 import Environment
 import gettext
 import osmapi
 import re
+import multiprocessing
 
 from lib import get_bbox, get_osc, point_in_box, point_in_poly, has_building_tag
 from lib import get_address_tags, has_address_change, load_changeset
@@ -175,6 +176,17 @@ class ChangesWithin(object):
         sys.stderr.write('reading file\n')
         self.tree = etree.parse(self.osc_file)
 
+    def _parallel_process(self, function, elements):
+        numprocs = multiprocessing.cpu_count()
+        procs = []
+        for i in range(numprocs):
+            proc_elements = elements[i::numprocs]
+            procs.append(multiprocessing.Process(target=function, args=[proc_elements]))
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join()
+
     def proces_data(self):
         """
         Proces the whole OSC file
@@ -187,7 +199,11 @@ class ChangesWithin(object):
         start = time.time()
         self.proces_nodes()
         print 'elapsed nodes:{}'.format(time.time()-start)
-        self.proces_ways()
+        start = time.time()
+        elements = self.tree.xpath('//way')
+        self._parallel_process(self.proces_ways, elements)
+        #self.proces_ways()
+        print 'elapsed ways:{}'.format(time.time()-start)
         self.changesets = map(load_changeset, self.changesets.values())
         self.stats['total'] = len(self.changesets)
 
@@ -208,21 +224,19 @@ class ChangesWithin(object):
                 cid = n.get('changeset')
                 nid = n.get('id', -1)
                 add_node(n, nid, self.nodes)
+                version = int(n.get('version'))
                 for int_tag in self.interest_tags['node']:
                     if has_tag(n, int_tag['k'], int_tag['v']):
-                        ntags = n.findall(".//tag[@k]")
-                        addr_tags = get_address_tags(ntags)
-                        addr_tags = self._prety_tags(addr_tags)
-                        version = int(n.get('version'))
+                        old_tags = self._get_tags(n, int_tag['k'])
 
                         # Capture address changes
                         if version != 1:
-                            if self._has_tag_changed(nid, addr_tags, int_tag['k'], version, 'node'):
+                            if self._has_tag_changed(nid, old_tags, int_tag['k'], version, 'node'):
                                 add_changeset(n, cid, self.changesets)
                                 self.changesets[cid]['nodes'][nid] = self.nodes[nid]
                                 self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
                                 self.stats[int_tag['name']] += 1
-                        elif len(addr_tags):
+                        elif len(old_tags):
                             add_changeset(n, cid, self.changesets)
                             self.changesets[cid]['nodes'][nid] = self.nodes[nid]
                             self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
@@ -270,45 +284,71 @@ class ChangesWithin(object):
         else:
             return False
 
-    def proces_ways(self):
+    def _get_tags(self, element, keys):
+        """
+        Method that returns the tags of a lxml element
+
+        :param element: Lxml element
+        :param keys: Keys to select
+        :return: Dict with the tag-value
+        """
+        ntags = element.findall(".//tag[@k]")
+        re_keys = re.compile(keys)
+        tags = {}
+        for element in ntags:
+            if re.match(re_keys,element.attrib['k']):
+                tags[element.attrib['k']] = element.attrib['v']
+        return tags
+
+    def proces_ways(self, elements=None, checkhistoy=True):
         """
         Process the ways of the OSC file
 
         :return: None
         """
 
-        sys.stderr.write('finding changesets\n')
+        sys.stderr.write('finding ways\n')
         # Find ways that contain nodes that were previously determined to fall within specified area
+        if elements is None:
+            elements = self.tree.xpath('//way')
 
-        elements = self.tree.xpath('//way')
         for w in elements:
-            relevant = False
             cid = w.get('changeset')
             wid = w.get('id', -1)
+            version = int(w.get('version'))
+            modified_node = False
 
-            # Only if the way has 'building' tag
-            if has_building_tag(w):
-                for nd in w.iterfind('./nd'):
-                    if nd.get('ref', -2) in self.nodes.keys():
-                        relevant = True
-                        add_changeset(w, cid, self.changesets)
-                        nid = nd.get('ref', -2)
-                        self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                        self.changesets[cid]['wids'].add(wid)
-            if relevant:
-                self.stats['buildings'] += 1
-                wtags = w.findall(".//tag[@k]")
-                version = int(w.get('version'))
-                addr_tags = get_address_tags(wtags)
+            for int_tag in self.interest_tags['way']:
+                old_tags = self._get_tags(w, int_tag['k'])
+                # Only if the way has 'building' tag
 
-                # Capture address changes
-                if version != 1:
-                    if has_address_change(wid, addr_tags, version, 'way'):
-                        self.changesets[cid]['addr_chg_way'].add(wid)
-                        self.stats['addresses'] += 1
-                elif len(addr_tags):
-                    self.changesets[cid]['addr_chg_way'].add(wid)
-                    self.stats['addresses'] += 1
+                if has_tag(w, int_tag['k']):
+                    for nd in w.iterfind('./nd'):
+                        if nd.get('ref', -2) in self.nodes.keys():
+                            relevant = True
+                            add_changeset(w, cid, self.changesets)
+                            nid = nd.get('ref', -2)
+                            self.changesets[cid]['nodes'][nid] = self.nodes[nid]
+                            self.changesets[cid]['wids'].add(wid)
+                            self.stats[int_tag['name']] += 1
+                            modified_node = True
+                            continue
+
+                    if modified_node:
+                        self.stats[int_tag['name']] += 1
+                        if checkhistoy:
+                            if self._has_tag_changed(wid, old_tags, int_tag['k'], version, 'way'):
+                                if cid not in self.changesets:
+                                    add_changeset(w, cid, self.changesets)
+                                self.changesets[cid]['addr_chg_way'].add(wid)
+                                self.stats[int_tag['name']] += 1
+                        else:
+                            if cid not in self.changesets:
+                                add_changeset(w, cid, self.changesets)
+                            self.changesets[cid]['addr_chg_way'].add(wid)
+                            self.stats[int_tag['name']] += 1
+                        continue
+
 
     def report(self):
         """
