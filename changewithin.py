@@ -195,14 +195,9 @@ class ChangesWithin(object):
         sys.stderr.write('finding points\n')
 
         # Find nodes that fall within specified area
-        start = time.time()
         self.proces_nodes()
-        print 'elapsed nodes:{}'.format(time.time()-start)
-        start = time.time()
         elements = self.tree.xpath('//way')
         self._parallel_process(self.proces_ways, elements)
-        #self.proces_ways()
-        print 'elapsed ways:{}'.format(time.time()-start)
         self.changesets = map(load_changeset, self.changesets.values())
         self.stats['total'] = len(self.changesets)
 
@@ -390,9 +385,5 @@ if __name__ == '__main__':
     c = ChangesWithin()
     c.load_config()
     c.load_file()
-    import time
-    start = time.time()
     c.proces_data()
-    print 'elapsed:{}'.format(time.time()-start)
-
     c.report()
