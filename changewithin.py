@@ -176,6 +176,13 @@ class ChangesWithin(object):
         self.tree = etree.parse(self.osc_file)
 
     def _parallel_process(self, function, elements):
+        """
+        Method that parallelizes a function over a list of elements
+
+        :param function: Method to parallelize
+        :param elements: List of elements
+        :return: None
+        """
         numprocs = multiprocessing.cpu_count()
         procs = []
         for i in range(numprocs):
