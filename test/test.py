@@ -85,6 +85,7 @@ class ChangesWithinTest(unittest.TestCase):
     def test_has_tag(self):
         """
         Function to test has_tag
+
         :return: None
         """
         
@@ -95,7 +96,31 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertFalse(has_tag(e1, 'building', 'asfas'))
         self.assertFalse(has_tag(e1, 'house'))
 
+    def test_prety_tags(self):
+        """
+        Function to test prety_tags
 
+        :return:  Nne
+        """
+        c = ChangesWithin()
+        test_in = [{'k': 'hi', 'v': 'bye'}, {'k': 'one', 'v': 'two'}]
+        test_out = {'hi': 'bye', 'one': 'two'}
+        self.assertEqual(c._prety_tags(test_in), test_out)
+
+    def test_has_tag_changed(self):
+        """
+        Function to test has_tag_changed
+
+        :return:
+        """
+        c = ChangesWithin()
+        old_tags = {'addr:housenumber': '49',
+                    'addr:postcode': '17001',
+                    'addr:street': 'Carrer de Santa Clara',
+                    'addr:city': 'Girona',
+                    'addr:country': 'ES'}
+        self.assertTrue(c._has_tag_changed('781488074', old_tags, 'addr:.*', 4, 'node'))
+        self.assertFalse(c._has_tag_changed('781488074', old_tags, 'addr:.*', 5, 'node'))
 
 if __name__ == '__main__':
     unittest.main()

@@ -8,6 +8,8 @@ from datetime import datetime
 import argparse
 from jinja2 import Environment
 import gettext
+import osmapi
+import re
 
 from lib import get_bbox, get_osc, point_in_box, point_in_poly, has_building_tag
 from lib import get_address_tags, has_address_change, load_changeset
@@ -40,6 +42,8 @@ class ChangesWithin(object):
             'node': [],
             'way': []
         }
+        self.osm_api = osmapi.OsmApi()
+        self.stats = {}
 
     def get_template(self, template_name):
         """
@@ -143,9 +147,11 @@ class ChangesWithin(object):
 
         for tag in self.config.get('tags', {}):
             conf_tag = self.config['tags'][tag]['tags'].split('=')
-            watch_tag = {'k': conf_tag[0], 'v': conf_tag[1]}
+            watch_tag = {'k': conf_tag[0], 'v': conf_tag[1], 'name': tag}
+            self.stats[tag] = 0
             if 'node' in self.config['tags'][tag]['type'].split(','):
                 self.interest_tags['node'].append(watch_tag)
+
             if 'way' in self.config['tags'][tag]['type'].split(','):
                 self.interest_tags['way'].append(watch_tag)
 
@@ -167,8 +173,6 @@ class ChangesWithin(object):
         sys.stderr.write('getting state\n')
         self.osc_file = get_osc(self.osc_url)
         sys.stderr.write('reading file\n')
-        self.stats['buildings'] = 0
-        self.stats['addresses'] = 0
         self.tree = etree.parse(self.osc_file)
 
     def proces_data(self):
@@ -180,8 +184,9 @@ class ChangesWithin(object):
         sys.stderr.write('finding points\n')
 
         # Find nodes that fall within specified area
-
+        start = time.time()
         self.proces_nodes()
+        print 'elapsed nodes:{}'.format(time.time()-start)
         self.proces_ways()
         self.changesets = map(load_changeset, self.changesets.values())
         self.stats['total'] = len(self.changesets)
@@ -203,23 +208,67 @@ class ChangesWithin(object):
                 cid = n.get('changeset')
                 nid = n.get('id', -1)
                 add_node(n, nid, self.nodes)
-                if has_tag(n, 'addr:.*'):
-                    ntags = n.findall(".//tag[@k]")
-                    addr_tags = get_address_tags(ntags)
-                    version = int(n.get('version'))
+                for int_tag in self.interest_tags['node']:
+                    if has_tag(n, int_tag['k'], int_tag['v']):
+                        ntags = n.findall(".//tag[@k]")
+                        addr_tags = get_address_tags(ntags)
+                        addr_tags = self._prety_tags(addr_tags)
+                        version = int(n.get('version'))
 
-                    # Capture address changes
-                    if version != 1:
-                        if has_address_change(nid, addr_tags, version, 'node'):
+                        # Capture address changes
+                        if version != 1:
+                            if self._has_tag_changed(nid, addr_tags, int_tag['k'], version, 'node'):
+                                add_changeset(n, cid, self.changesets)
+                                self.changesets[cid]['nodes'][nid] = self.nodes[nid]
+                                self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
+                                self.stats[int_tag['name']] += 1
+                        elif len(addr_tags):
                             add_changeset(n, cid, self.changesets)
                             self.changesets[cid]['nodes'][nid] = self.nodes[nid]
                             self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
-                            self.stats['addresses'] += 1
-                    elif len(addr_tags):
-                        add_changeset(n, cid, self.changesets)
-                        self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                        self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
-                        self.stats['addresses'] += 1
+                            self.stats[int_tag['name']] += 1
+
+    def _prety_tags(self, tags):
+        """
+        Converts list of k-v dict into python dict
+        :param tags: list of k-v dicts
+        :return: Dict
+        """
+
+        out_tags = {}
+        for tag in tags:
+            out_tags[tag['k']] = tag['v']
+        return out_tags
+
+    def _has_tag_changed(self, gid, old_tags, watch_tags, version, elem):
+        """
+        Checks if tags has changed on the changeset
+
+        :param gid: Geometry id
+        :param old_tags: Old tags
+        :param watch_tags: Tags to check
+        :param version: version to check
+        :param elem: Type of element
+        :return: Boolean
+        """
+
+        previous_elem = {}
+        if elem == 'node':
+            previous_elem = self.osm_api.NodeHistory(gid)[version-1]
+        elif elem == 'way':
+            previous_elem = self.osm_api.WayHistory(gid)[version - 1]
+        elif elem == 'relation':
+            previous_elem = self.osm_api.RelationHistory(gid)[version - 1]
+        if previous_elem:
+            previous_tags = previous_elem['tag']
+            out_tags = {}
+            for key, value in previous_tags.items():
+                if re.match(watch_tags, key):
+                    out_tags[key] = value
+            previous_tags = out_tags
+            return previous_tags != old_tags
+        else:
+            return False
 
     def proces_ways(self):
         """
@@ -303,5 +352,9 @@ if __name__ == '__main__':
     c = ChangesWithin()
     c.load_config()
     c.load_file()
+    import time
+    start = time.time()
     c.proces_data()
+    print 'elapsed:{}'.format(time.time()-start)
+
     c.report()

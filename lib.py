@@ -8,6 +8,8 @@ import sys
 import re
 import urllib
 from lxml import etree
+import osmapi
+
 from ModestMaps.Geo import MercatorProjection
 from ModestMaps.Geo import Location
 from ModestMaps.Core import Coordinate
@@ -226,9 +228,13 @@ def get_address_tags(tags):
     return addr_tags
 
 
+
+
+
+
 def has_address_change(gid, addr, version, elem):
     """
-    Checks if the the address tags has chanes on the change
+    Checks if the the address tags has changed on the changeset
 
     :param gid: geometry id
     :param addr: Actual addr tags
