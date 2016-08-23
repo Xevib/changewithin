@@ -12,8 +12,7 @@ import osmapi
 import re
 import multiprocessing
 
-from lib import get_bbox, get_osc, point_in_box, point_in_poly, has_building_tag
-from lib import get_address_tags, has_address_change, load_changeset
+from lib import get_bbox, get_osc, point_in_box, point_in_poly, load_changeset
 from lib import add_changeset, add_node, has_tag
 
 
@@ -348,7 +347,6 @@ class ChangesWithin(object):
                             self.changesets[cid]['addr_chg_way'].add(wid)
                             self.stats[int_tag['name']] += 1
                         continue
-
 
     def report(self):
         """
