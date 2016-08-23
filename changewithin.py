@@ -326,7 +326,6 @@ class ChangesWithin(object):
                 if has_tag(w, int_tag['k']):
                     for nd in w.iterfind('./nd'):
                         if nd.get('ref', -2) in self.nodes.keys():
-                            relevant = True
                             add_changeset(w, cid, self.changesets)
                             nid = nd.get('ref', -2)
                             self.changesets[cid]['nodes'][nid] = self.nodes[nid]
