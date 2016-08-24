@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-08-14 08:04+0200\n"
+"POT-Creation-Date: 2016-08-24 09:01+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,24 +25,28 @@ msgstr ""
 msgid "Total changesets"
 msgstr ""
 
-#: templates/html_template.html:6 templates/text_template.txt:6
-msgid "Total address changes"
+#: templates/html_template.html:7
+msgid "Total changes of"
 msgstr ""
 
-#: templates/html_template.html:7 templates/text_template.txt:5
-msgid "Total building footprint changes"
-msgstr ""
-
-#: templates/html_template.html:13
+#: templates/html_template.html:15
 msgid "Changeset"
 msgstr ""
 
-#: templates/html_template.html:18 templates/text_template.txt:18
-msgid "Changed buildings"
+#: templates/html_template.html:22
+msgid "Nodes changed"
 msgstr ""
 
-#: templates/html_template.html:21 templates/text_template.txt:19
-msgid "Changed addresses"
+#: templates/html_template.html:25
+msgid "Ways changed"
+msgstr ""
+
+#: templates/text_template.txt:5
+msgid "Total building footprint changes"
+msgstr ""
+
+#: templates/text_template.txt:6
+msgid "Total address changes"
 msgstr ""
 
 #: templates/text_template.txt:15
@@ -51,5 +55,13 @@ msgstr ""
 
 #: templates/text_template.txt:16
 msgid "Comment"
+msgstr ""
+
+#: templates/text_template.txt:18
+msgid "Changed buildings"
+msgstr ""
+
+#: templates/text_template.txt:19
+msgid "Changed addresses"
 msgstr ""
 
