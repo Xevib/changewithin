@@ -13,7 +13,7 @@ import re
 import multiprocessing
 
 from lib import get_bbox, get_osc, point_in_box, point_in_poly, load_changeset
-from lib import add_changeset, add_node, has_tag
+from lib import has_tag
 
 
 class ChangesWithin(object):
@@ -224,7 +224,7 @@ class ChangesWithin(object):
             if point_in_box(lon, lat, self.aoi_box) and point_in_poly(lon, lat, self.aoi_poly):
                 cid = n.get('changeset')
                 nid = n.get('id', -1)
-                add_node(n, nid, self.nodes)
+                self._add_node(n, nid)
                 version = int(n.get('version'))
                 for int_tag in self.interest_tags['node']:
                     if has_tag(n, int_tag['k'], int_tag['v']):
@@ -233,14 +233,14 @@ class ChangesWithin(object):
                         # Capture address changes
                         if version != 1:
                             if self._has_tag_changed(nid, old_tags, int_tag['k'], version, 'node'):
-                                add_changeset(n, cid, self.changesets)
+                                self._add_changeset(n, cid)
                                 self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                                self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
+                                self.changesets[cid][int_tag['name'] + '_nd'][nid] = self.nodes[nid]
                                 self.stats[int_tag['name']] += 1
                         elif len(old_tags):
-                            add_changeset(n, cid, self.changesets)
+                            self._add_changeset(n, cid)
                             self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                            self.changesets[cid]['addr_chg_nd'][nid] = self.nodes[nid]
+                            self.changesets[cid][int_tag['name'] + '_nd'][nid] = self.nodes[nid]
                             self.stats[int_tag['name']] += 1
 
     def _prety_tags(self, tags):
@@ -326,7 +326,7 @@ class ChangesWithin(object):
                 if has_tag(w, int_tag['k']):
                     for nd in w.iterfind('./nd'):
                         if nd.get('ref', -2) in self.nodes.keys():
-                            add_changeset(w, cid, self.changesets)
+                            self._add_changeset(w, cid)
                             nid = nd.get('ref', -2)
                             self.changesets[cid]['nodes'][nid] = self.nodes[nid]
                             self.changesets[cid]['wids'].add(wid)
@@ -339,13 +339,13 @@ class ChangesWithin(object):
                         if checkhistoy:
                             if self._has_tag_changed(wid, old_tags, int_tag['k'], version, 'way'):
                                 if cid not in self.changesets:
-                                    add_changeset(w, cid, self.changesets)
-                                self.changesets[cid]['addr_chg_way'].add(wid)
+                                    self._add_changeset(w, cid)
+                                self.changesets[cid][int_tag['name'] + '_way'].add(wid)
                                 self.stats[int_tag['name']] += 1
                         else:
                             if cid not in self.changesets:
-                                add_changeset(w, cid, self.changesets)
-                            self.changesets[cid]['addr_chg_way'].add(wid)
+                                self._add_changeset(w, cid)
+                            self.changesets[cid][int_tag['name'] + '_way'].add(wid)
                             self.stats[int_tag['name']] += 1
                         continue
 
@@ -365,7 +365,8 @@ class ChangesWithin(object):
         template_data = {
             'changesets': self.changesets,
             'stats': self.stats,
-            'date': now.strftime("%B %d, %Y")
+            'date': now.strftime("%B %d, %Y"),
+            'tags': self.config['tags'].keys()
         }
         html_version = self.html_tmpl.render(**template_data)
         text_version = self.text_tmpl.render(**template_data)
@@ -386,6 +387,43 @@ class ChangesWithin(object):
         f_out.close()
         print('Wrote {0}'.format(file_name))
         os.unlink(self.osc_file)
+
+    def _add_changeset(self, el, cid):
+        """
+        Add a changeset on the list of rellevant changesets
+
+        :param el:  Element
+        :param cid: Changeset id
+        :return: None
+        """
+
+        if not self.changesets.get(cid, False):
+            self.changesets[cid] = {
+                'id': cid,
+                'user': el.get('user'),
+                'uid': el.get('uid'),
+                'wids': set(),
+                'nodes': {}
+            }
+        for tag in self.config['tags'].keys():
+            self.changesets[cid][tag + '_way'] = set()
+            self.changesets[cid][tag + '_nd'] = {}
+
+    def _add_node(self, el, nid):
+        """
+        Adds node to the list of rellevant nodes
+
+        :param el: Element
+        :param nid: Node id
+        :return: None
+        """
+
+        if not self.nodes.get(nid, False):
+            self.nodes[nid] = {
+                'id': nid,
+                'lat': float(el.get('lat')),
+                'lon': float(el.get('lon'))
+            }
 
 if __name__ == '__main__':
     c = ChangesWithin()
