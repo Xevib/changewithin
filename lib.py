@@ -268,8 +268,16 @@ def load_changeset(changeset):
 
     changeset['wids'] = list(changeset['wids'])
     changeset['nids'] = changeset['nodes'].keys()
-    changeset['addr_chg_nids'] = changeset['addr_chg_nd'].keys()
-    changeset['addr_chg_way'] = list(changeset['addr_chg_way'])
+    total_count = 0
+    for key in changeset.keys():
+        if key[-3:] == '_nd':
+            name = key[:-3]
+            changeset[name + '_nids'] = changeset[key].keys()
+            changeset[name + '_way'] = list(changeset[name + '_way'])
+            changeset[name + '_count'] = len(changeset[name + '_way']) + len(changeset[name + '_nids'])
+            total_count += changeset[name + '_count']
+    #changeset['addr_chg_nids'] = changeset['addr_chg_nd'].keys()
+    #changeset['addr_chg_way'] = list(changeset['addr_chg_way'])
     points = map(get_point, changeset['nodes'].values())
     polygons = map(get_polygon, changeset['wids'])
     gjson = geojson_feature_collection(points=points, polygons=polygons)
@@ -287,49 +295,13 @@ def load_changeset(changeset):
     if len(changeset['map_img']) > 2048:
         changeset['map_img'] = 'http://api.tiles.mapbox.com/v3/lxbarth.map-lxoorpwz/geojson({0})/{1},{2},{3}/600x400.png'.format(urllib.quote(json.dumps(bbox_from_geojson(gjson))), extent['lon'], extent['lat'], extent['zoom'])
     changeset['map_link'] = 'http://www.openstreetmap.org/?lat={0}&lon={1}&zoom={2}&layers=M'.format(extent['lat'], extent['lon'], extent['zoom'])
-    changeset['addr_count'] = len(changeset['addr_chg_way']) + len(changeset['addr_chg_nids'])
-    changeset['bldg_count'] = len(changeset['wids'])
+    #changeset['addr_count'] = len(changeset['addr_chg_way']) + len(changeset['addr_chg_nids'])
+    #changeset['bldg_count'] = len(changeset['wids'])
+    changeset['total'] = total_count
     return changeset
 
 
-def add_changeset(el, cid, changesets):
-    """
-    Add a changeset on the list of rellevant changesets
 
-    :param el:  Element
-    :param cid: Changeset id
-    :param changesets: list of changesets
-    :return: None
-    """
-    
-    if not changesets.get(cid, False):
-        changesets[cid] = {
-            'id': cid,
-            'user': el.get('user'),
-            'uid': el.get('uid'),
-            'wids': set(),
-            'nodes': {},
-            'addr_chg_way': set(),
-            'addr_chg_nd': {}
-        }
-
-
-def add_node(el, nid, nodes):
-    """
-    Adds node to the list of rellevant nodes
-
-    :param el: Element
-    :param nid: Node id
-    :param nodes: List of nodes
-    :return: None
-    """
-
-    if not nodes.get(nid, False):
-        nodes[nid] = {
-            'id': nid,
-            'lat': float(el.get('lat')),
-            'lon': float(el.get('lon'))
-        }
 
 
 def geojson_multi_point(coords):
