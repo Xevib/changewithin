@@ -336,7 +336,7 @@ class ChangesWithin(object):
 
                     if modified_node:
                         self.stats[int_tag['name']] += 1
-                        if checkhistoy:
+                        if checkhistoy and version > 1:
                             if self._has_tag_changed(wid, old_tags, int_tag['k'], version, 'way'):
                                 if cid not in self.changesets:
                                     self._add_changeset(w, cid)
