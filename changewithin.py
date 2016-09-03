@@ -10,10 +10,145 @@ from jinja2 import Environment
 import gettext
 import osmapi
 import re
-import multiprocessing
+from multiprocessing import Process, Queue, current_process
 
 from lib import get_bbox, get_osc, point_in_box, point_in_poly, load_changeset
 from lib import has_tag
+
+
+def has_tag_changed(gid, old_tags, watch_tags, version, elem):
+    """
+    Checks if tags has changed on the changeset
+
+    :param gid: Geometry id
+    :param old_tags: Old tags
+    :param watch_tags: Tags to check
+    :param version: version to check
+    :param elem: Type of element
+    :return: Boolean
+    """
+
+    previous_elem = {}
+    osm_api = osmapi.OsmApi()
+    if elem == 'node':
+        previous_elem = osm_api.NodeHistory(gid)[version - 1]
+    elif elem == 'way':
+        previous_elem = osm_api.WayHistory(gid)[version - 1]
+    elif elem == 'relation':
+        previous_elem = osm_api.RelationHistory(gid)[version - 1]
+    if previous_elem:
+        previous_tags = previous_elem['tag']
+        out_tags = {}
+        for key, value in previous_tags.items():
+            if re.match(watch_tags, key):
+                out_tags[key] = value
+        previous_tags = out_tags
+
+        return previous_tags != old_tags
+    else:
+        return False
+
+
+def get_tags(element, keys):
+    """
+    Method that returns the tags of a lxml element
+
+    :param element: Lxml element
+    :param keys: Keys to select
+    :return: Dict with the tag-value
+    """
+    ntags = element.findall(".//tag[@k]")
+    re_keys = re.compile(keys)
+    tags = {}
+    for element in ntags:
+        if re.match(re_keys, element.attrib['k']):
+            tags[element.attrib['k']] = element.attrib['v']
+    return tags
+
+
+def proces_ways( work_queue, done_queue, interest_tags, nodes, config, checkhistoy=True):
+    """
+    Process the ways of the OSC file
+
+    :return: None
+    """
+    try:
+        sys.stderr.write('finding ways proc {}\n'.format(current_process().name))
+        # Find ways that contain nodes that were previously determined to fall within specified area
+
+        for str_way in iter(work_queue.get, 'STOP'):
+            if str_way == 'STOP':
+                print('proc:{} ha trobat stop'.format(current_process().name))
+                return True
+            changeset = {}
+            w = etree.fromstring(str_way)
+            cid = w.get('changeset')
+            wid = int(w.get('id', -1))
+            version = int(w.get('version'))
+            modified_node = False
+            for int_tag in interest_tags['way']:
+                old_tags = get_tags(w, int_tag['k'])
+                # Only if the way has 'building' tag
+
+                if has_tag(w, int_tag['k']):
+                    for nd in w.iterfind('./nd'):
+                        if nd.get('ref', -2) in nodes.keys():
+                            changeset[cid] = {
+                                'id': cid,
+                                'user': w.get('user'),
+                                'uid': w.get('uid'),
+                                'wids': set(),
+                                'nodes': {}
+                            }
+                            for tag in config['tags'].keys():
+                                changeset[cid][tag + '_way'] = set()
+                                changeset[cid][tag + '_nd'] = {}
+                            nid = nd.get('ref', -2)
+                            changeset[cid]['nodes'][nid] = nodes[nid]
+                            changeset[cid]['wids'].add(wid)
+                            #self.stats[int_tag['name']] += 1
+                            modified_node = True
+
+                    if modified_node:
+                        #self.stats[int_tag['name']] += 1
+                        if checkhistoy and version > 1:
+                            if has_tag_changed(wid, old_tags, int_tag['k'], version, 'way'):
+                                if cid not in changeset:
+                                    changeset[cid] = {
+                                        'id': cid,
+                                        'user': w.get('user'),
+                                        'uid': w.get('uid'),
+                                        'wids': set(),
+                                        'nodes': {}
+                                    }
+                                    for tag in config['tags'].keys():
+                                        changeset[cid][tag + '_way'] = set()
+                                        changeset[cid][tag + '_nd'] = {}
+                                changeset[cid][int_tag['name'] + '_way'].add(wid)
+                                #self.stats[int_tag['name']] += 1
+                        else:
+                            if cid not in changeset:
+                                changeset[cid] = {
+                                    'id': cid,
+                                    'user': w.get('user'),
+                                    'uid': w.get('uid'),
+                                    'wids': set(),
+                                    'nodes': {}
+                                }
+                                for tag in config['tags'].keys():
+                                    changeset[cid][tag + '_way'] = set()
+                                    changeset[cid][tag + '_nd'] = {}
+                            changeset[cid][int_tag['name'] + '_way'].add(wid)
+                            #self.stats[int_tag['name']] += 1
+                if changeset:
+                    done_queue.put(changeset)
+        print('proc:{} ha acabat'.format(current_process().name))
+    except Exception, e:
+        print "%s failed on with: %s" % (current_process().name, e.message)
+        done_queue.put(
+            "%s failed on with: %s" % (current_process().name, e.message))
+    return True
+
 
 
 class ChangesWithin(object):
@@ -175,7 +310,7 @@ class ChangesWithin(object):
         sys.stderr.write('reading file\n')
         self.tree = etree.parse(self.osc_file)
 
-    def _parallel_process(self, function, elements):
+    def _parallel_process(self, function, elements, **kwargs):
         """
         Method that parallelizes a function over a list of elements
 
@@ -183,15 +318,31 @@ class ChangesWithin(object):
         :param elements: List of elements
         :return: None
         """
-        numprocs = multiprocessing.cpu_count()
-        procs = []
-        for i in range(numprocs):
-            proc_elements = elements[i::numprocs]
-            procs.append(multiprocessing.Process(target=function, args=[proc_elements]))
-        for p in procs:
+
+        workers = 1
+        work_queue = Queue()
+        done_queue = Queue()
+        processes = []
+        #Entre 6500 i 6575
+        for element in elements:
+            work_queue.put(etree.tostring(element))
+        del elements
+        kwargs['work_queue'] = work_queue
+        kwargs['done_queue'] = done_queue
+        for w in range(workers):
+            p = Process(target=function, kwargs=kwargs)
             p.start()
-        for p in procs:
+            processes.append(p)
+            work_queue.put('STOP')
+        print 'abans de join'
+        for p in processes:
             p.join()
+            print 'passat join {}'.format(p)
+        print('vies procesades')
+        done_queue.put('STOP')
+
+        for changes in iter(done_queue.get, 'STOP'):
+            self.changesets.update(changes)
 
     def proces_data(self):
         """
@@ -203,8 +354,12 @@ class ChangesWithin(object):
 
         # Find nodes that fall within specified area
         self.proces_nodes()
-        elements = self.tree.xpath('//way')
-        self._parallel_process(self.proces_ways, elements)
+
+        elements = self.tree.xpath('//modify/way')
+        print 'modificats:{}'.format(len(elements))
+        #elements = self.tree.xpath('//way')
+        #print 'tots:{}'.format(len(elements))
+        self._parallel_process(proces_ways, elements, interest_tags=self.interest_tags, nodes=self.nodes, config=self.config, checkhistoy=True)
         self.changesets = map(load_changeset, self.changesets.values())
         self.stats['total'] = len(self.changesets)
 
@@ -266,7 +421,9 @@ class ChangesWithin(object):
         :param elem: Type of element
         :return: Boolean
         """
-
+        import time
+        time.sleep(0.1)
+        print '_has_tag_changed-> gid:{}'.format(gid)
         previous_elem = {}
         if elem == 'node':
             previous_elem = self.osm_api.NodeHistory(gid)[version-1]
@@ -281,6 +438,7 @@ class ChangesWithin(object):
                 if re.match(watch_tags, key):
                     out_tags[key] = value
             previous_tags = out_tags
+
             return previous_tags != old_tags
         else:
             return False
@@ -301,53 +459,7 @@ class ChangesWithin(object):
                 tags[element.attrib['k']] = element.attrib['v']
         return tags
 
-    def proces_ways(self, elements=None, checkhistoy=True):
-        """
-        Process the ways of the OSC file
 
-        :return: None
-        """
-
-        sys.stderr.write('finding ways\n')
-        # Find ways that contain nodes that were previously determined to fall within specified area
-        if elements is None:
-            elements = self.tree.xpath('//way')
-
-        for w in elements:
-            cid = w.get('changeset')
-            wid = w.get('id', -1)
-            version = int(w.get('version'))
-            modified_node = False
-
-            for int_tag in self.interest_tags['way']:
-                old_tags = self._get_tags(w, int_tag['k'])
-                # Only if the way has 'building' tag
-
-                if has_tag(w, int_tag['k']):
-                    for nd in w.iterfind('./nd'):
-                        if nd.get('ref', -2) in self.nodes.keys():
-                            self._add_changeset(w, cid)
-                            nid = nd.get('ref', -2)
-                            self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                            self.changesets[cid]['wids'].add(wid)
-                            self.stats[int_tag['name']] += 1
-                            modified_node = True
-                            continue
-
-                    if modified_node:
-                        self.stats[int_tag['name']] += 1
-                        if checkhistoy and version > 1:
-                            if self._has_tag_changed(wid, old_tags, int_tag['k'], version, 'way'):
-                                if cid not in self.changesets:
-                                    self._add_changeset(w, cid)
-                                self.changesets[cid][int_tag['name'] + '_way'].add(wid)
-                                self.stats[int_tag['name']] += 1
-                        else:
-                            if cid not in self.changesets:
-                                self._add_changeset(w, cid)
-                            self.changesets[cid][int_tag['name'] + '_way'].add(wid)
-                            self.stats[int_tag['name']] += 1
-                        continue
 
     def report(self):
         """
@@ -368,6 +480,7 @@ class ChangesWithin(object):
             'date': now.strftime("%B %d, %Y"),
             'tags': self.config['tags'].keys()
         }
+        print template_data
         html_version = self.html_tmpl.render(**template_data)
         text_version = self.text_tmpl.render(**template_data)
 
