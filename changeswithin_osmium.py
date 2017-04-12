@@ -246,7 +246,7 @@ class ChangeWithin(object):
             value, key = self.conf["tags"][name]["tags"].split("=")
             types = self.conf["tags"][name]["tags"].split(",")
             self.handler.set_tags(name, key, value, types)
-        print self.conf
+        print(self.conf)
 
     def process_file(self, filename):
         """
