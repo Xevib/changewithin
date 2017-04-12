@@ -29,8 +29,7 @@ install:
  - git clone --quiet --depth 1 https://github.com/osmcode/libosmium.git ../libosmium
  - git clone --quiet --depth 1 https://github.com/osmcode/pyosmium.git ../pyosmium
  - cd ../pyosmium
- - python${USE_PYTHON_VERSION} --version
- - python${USE_PYTHON_VERSION} setup.py build
+ - python setup.py build
 script:
  - PYTHONPATH="." coverage run test/test.py && coverage report
  - coveralls
