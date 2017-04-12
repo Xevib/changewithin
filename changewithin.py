@@ -150,7 +150,6 @@ def proces_ways( work_queue, done_queue, interest_tags, nodes, config, checkhist
     return True
 
 
-
 class ChangesWithin(object):
     """
     Function that manages te changeswithin program
