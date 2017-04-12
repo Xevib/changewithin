@@ -4,16 +4,16 @@ import json
 from changewithin import ChangesWithin
 from changeswithin_osmium import ChangeWithin as ChangesWithinOsmium
 from changeswithin_osmium import ChangeHandler
+from osmium.osm import Location
 import os
 from lxml import etree
 
 
 class HandlerTest(unittest.TestCase):
-    def __init__(self):
+    def setUp(self):
         """
-        Constructor
+        Initialization
         """
-        super(self).__init__()
         self.handler = ChangeHandler()
         self.handler.north = 41.9933
         self.handler.east = 2.8576
@@ -21,18 +21,18 @@ class HandlerTest(unittest.TestCase):
         self.handler.west = 2.7847
 
     def test_bbox(self):
-        self.assertTrue(self.handler.location_in_bbox())
+        l = Location(2.81372, 41.98268)
+        self.assertTrue(self.handler.location_in_bbox(l))
 
 
 class ChangesWithinOsmiumTest(unittest.TestCase):
     """
     Initest for changeswithin using osmium
     """
-    def __init__(self):
+    def setUp(self):
         """
         Constructor
         """
-        super(self).__init__()
         self.cw = ChangesWithinOsmium()
 
 
