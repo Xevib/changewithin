@@ -144,7 +144,7 @@ def proces_ways( work_queue, done_queue, interest_tags, nodes, config, checkhist
                     done_queue.put(changeset)
         print('proc:{} ha acabat'.format(current_process().name))
     except Exception as e:
-        print "%s failed on with: %s" % (current_process().name, e.message)
+        print ("%s failed on with: %s" % (current_process().name, e.message))
         done_queue.put(
             "%s failed on with: %s" % (current_process().name, e.message))
     return True
