@@ -211,7 +211,9 @@ class ChangeHandler(osmium.SimpleHandler):
 
 
 class ChangeWithin(object):
-
+    """
+    Class that process the OSC files
+    """
     def __init__(self):
         """
         Initiliazes the class
@@ -220,11 +222,13 @@ class ChangeWithin(object):
         self.env_vars = {}
         self.handler = ChangeHandler()
 
-    def load_config(self):
+    def load_config(self, config=None):
         """
         Loads the configuration from the file
+        :config_file: Configuration as a dict
         :return: None
         """
+
         self.env_vars = config_from_environment('bard', ['config'])
 
         self.conf = ConfigObj(self.env_vars["config"])
