@@ -174,7 +174,7 @@ class ChangeHandler(osmium.SimpleHandler):
                             }
                         else:
                             self.changeset["nids"].append(node.id)
-                    print "node:changeset a dins:{}".format(node.changeset)
+                    print("node:changeset a dins:{}".format(node.changeset))
         self.num_nodes += 1
 
     def way(self, way):
