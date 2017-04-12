@@ -28,6 +28,9 @@ install:
  - pip install -r requirements-dev.txt
  - pip install coveralls
  - sudo apt-get install python-lxml
+ - git clone --quiet --depth 1 https://github.com/osmcode/libosmium.git ../libosmium
+ - python${USE_PYTHON_VERSION} --version
+ - python${USE_PYTHON_VERSION} setup.py build
 script:
  - PYTHONPATH="." coverage run test/test.py && coverage report
  - coveralls
