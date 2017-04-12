@@ -5,3 +5,4 @@ modestmaps>=1.4.2
 jinja2
 configobj
 osmapi
+osconf
