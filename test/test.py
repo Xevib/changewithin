@@ -10,6 +10,9 @@ from lxml import etree
 
 
 class HandlerTest(unittest.TestCase):
+    """
+    Unittest for the handler
+    """
     def setUp(self):
         """
         Initialization
