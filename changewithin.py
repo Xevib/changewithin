@@ -333,10 +333,10 @@ class ChangesWithin(object):
             p.start()
             processes.append(p)
             work_queue.put('STOP')
-        print 'abans de join'
+        print ('abans de join')
         for p in processes:
             p.join()
-            print 'passat join {}'.format(p)
+            print ('passat join {}'.format(p))
         print('vies procesades')
         done_queue.put('STOP')
 
@@ -355,7 +355,7 @@ class ChangesWithin(object):
         self.proces_nodes()
 
         elements = self.tree.xpath('//modify/way')
-        print 'modificats:{}'.format(len(elements))
+        print ('modificats:{}'.format(len(elements)))
         #elements = self.tree.xpath('//way')
         #print 'tots:{}'.format(len(elements))
         self._parallel_process(proces_ways, elements, interest_tags=self.interest_tags, nodes=self.nodes, config=self.config, checkhistoy=True)
@@ -422,7 +422,7 @@ class ChangesWithin(object):
         """
         import time
         time.sleep(0.1)
-        print '_has_tag_changed-> gid:{}'.format(gid)
+        print ('_has_tag_changed-> gid:{}'.format(gid))
         previous_elem = {}
         if elem == 'node':
             previous_elem = self.osm_api.NodeHistory(gid)[version-1]
@@ -459,14 +459,13 @@ class ChangesWithin(object):
         return tags
 
 
-
     def report(self):
         """
         Generates the report and sends it
 
         :return: None
         """
-
+        print ("self.changesets:{}".format(self.changesets))
         if len(self.changesets) > 1000:
             self.changesets = self.changesets[:999]
             self.stats['limit_exceed'] = 'Note: For performance reasons only the first 1000 changesets are displayed.'
@@ -479,7 +478,7 @@ class ChangesWithin(object):
             'date': now.strftime("%B %d, %Y"),
             'tags': self.config['tags'].keys()
         }
-        print template_data
+        print (template_data)
         html_version = self.html_tmpl.render(**template_data)
         text_version = self.text_tmpl.render(**template_data)
 
