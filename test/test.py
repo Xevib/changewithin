@@ -2,8 +2,38 @@ from lib import get_state, get_bbox, point_in_box, get_point, has_tag
 import unittest
 import json
 from changewithin import ChangesWithin
+from changeswithin_osmium import ChangeWithin as ChangesWithinOsmium
+from changeswithin_osmium import ChangeHandler
 import os
 from lxml import etree
+
+
+class HandlerTest(unittest.TestCase):
+    def __init__(self):
+        """
+        Constructor
+        """
+        super(self).__init__()
+        self.handler = ChangeHandler()
+        self.handler.north = 41.9933
+        self.handler.east = 2.8576
+        self.handler.south = 41.9623
+        self.handler.west = 2.7847
+
+    def test_bbox(self):
+        self.assertTrue(self.handler.location_in_bbox())
+
+
+class ChangesWithinOsmiumTest(unittest.TestCase):
+    """
+    Initest for changeswithin using osmium
+    """
+    def __init__(self):
+        """
+        Constructor
+        """
+        super(self).__init__()
+        self.cw = ChangesWithinOsmium()
 
 
 class ChangesWithinTest(unittest.TestCase):
