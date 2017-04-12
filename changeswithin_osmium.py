@@ -208,7 +208,7 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "nids": [],
                                 "wids": []
                             }
-                    print "way:changeset a dins:{}".format(way.changeset)
+                    print("way:changeset a dins:{}".format(way.changeset))
         self.num_ways += 1
 
     def relation(self, r):
