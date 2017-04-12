@@ -115,6 +115,14 @@ class ChangeHandler(osmium.SimpleHandler):
         return False
 
     def set_tags(self, name, key, value, element_types):
+        """
+        Sets the tags to wathc on the handler
+        :param name: Name of the tags
+        :param key: Key value expression
+        :param value: Value expression
+        :param element_types: List of element types
+        :return: None
+        """
         self.tags[name] = {}
         self.tags[name]["key_re"] = re.compile(key)
         self.tags[name]["value_re"] = re.compile(value)
