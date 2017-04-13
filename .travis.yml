@@ -17,8 +17,8 @@ install:
  - pyv="$(python -V 2>&1)"
  - echo "$pyv"
  - if [ "$pyv" = 'Python 3.5.2' ]; then
-        export PYTHON_SUFFIX=3
-        export BOOST_PYTHON_OPTION="--with-python3 --without-python"
+        export PYTHON_SUFFIX=3;
+        export BOOST_PYTHON_OPTION="--with-python3 --without-python";
    fi
  - python setup.py build
  - python setup.py install
