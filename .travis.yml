@@ -14,8 +14,8 @@ install:
  - git clone --quiet --depth 1 https://github.com/osmcode/libosmium.git ../libosmium
  - git clone --quiet --depth 1 https://github.com/osmcode/pyosmium.git ../pyosmium
  - cd ../pyosmium
- - python setup.py build
- - python setup.py install
+ - python{$TRAVIS_PYTHON_VERSION} setup.py build
+ - python{$TRAVIS_PYTHON_VERSION} setup.py install
  - cd -
 script:
  - PYTHONPATH="." coverage run test/test.py && coverage report
