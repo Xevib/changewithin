@@ -12,18 +12,7 @@ install:
  - pip install -r requirements-dev.txt
  - pip install coveralls
  - git clone --quiet --depth 1 https://github.com/osmcode/libosmium.git ../libosmium
- - git clone --quiet --depth 1 https://github.com/osmcode/pyosmium.git ../pyosmium
- - cd ../pyosmium
- - pyv="$(python -V 2>&1)"
- - echo "$pyv"
- - if [ "$pyv" = 'Python 3.5.2' ]; then
-        export PYTHON_SUFFIX=3;
-        export BOOST_PYTHON_OPTION="--with-python3 --without-python";
-        export;
-   fi
- - python setup.py build
- - python setup.py install
- - cd -
+ - pip install osmium 
 script:
  - PYTHONPATH="." coverage run test/test.py && coverage report
  - coveralls
