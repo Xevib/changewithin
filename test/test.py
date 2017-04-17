@@ -18,19 +18,37 @@ class HandlerTest(unittest.TestCase):
         Initialization
         """
         self.handler = ChangeHandler()
-        self.handler.north = 41.9933
-        self.handler.east = 2.8576
-        self.handler.south = 41.9623
-        self.handler.west = 2.7847
 
-    def test_bbox(self):
+    def test_in_bbox(self):
+        """
+        Tests the location_in_bbox of handler
+        :return: None
+        """
+
+        self.handler.set_bbox(41.9933, 2.8576, 41.9623, 2.7847)
         l = Location(2.81372, 41.98268)
         self.assertTrue(self.handler.location_in_bbox(l))
 
     def test_set_tags(self):
+        """
+        Test set_tags of handler
+        :return: None
+        """
+
         self.handler.set_tags("test", "key_tag", "element_tag", ["nodes", "ways"])
         self.assertTrue("test" in self.handler.tags)
 
+    def test_set_bbox(self):
+        """
+        Test set_bbox of handler
+        :return: None 
+        """
+
+        self.handler.set_bbox(41.9933, 2.8576, 41.9623, 2.7847)
+        self.assertEqual(self.handler.north, 41.9933)
+        self.assertEqual(self.handler.east, 2.8576)
+        self.assertEqual(self.handler.south, 41.9623)
+        self.assertEqual(self.handler.west, 2.7847)
 
 
 class ChangesWithinOsmiumTest(unittest.TestCase):
