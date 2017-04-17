@@ -28,9 +28,8 @@ class HandlerTest(unittest.TestCase):
         self.assertTrue(self.handler.location_in_bbox(l))
 
     def test_set_tags(self):
-        self.handler.set_tags("test", "key_tag", "element_tag")
+        self.handler.set_tags("test", "key_tag", "element_tag", ["nodes", "ways"])
         self.assertTrue("test" in self.handler.tags)
-        self.assertTrue(self.handler.tags["test"]["key_tag"] == "element_tag")
 
 
 
