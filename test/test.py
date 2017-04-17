@@ -27,6 +27,12 @@ class HandlerTest(unittest.TestCase):
         l = Location(2.81372, 41.98268)
         self.assertTrue(self.handler.location_in_bbox(l))
 
+    def test_set_tags(self):
+        self.handler.set_tags("test", "key_tag", "element_tag")
+        self.assertTrue("test" in self.handler.tags)
+        self.assertTrue(self.handler.tags["test"]["key_tag"] == "element_tag")
+
+
 
 class ChangesWithinOsmiumTest(unittest.TestCase):
     """
