@@ -10,6 +10,8 @@ import gettext
 from jinja2 import Environment
 from osconf import config_from_environment
 import osmapi
+from lib import get_osc
+import gettext
 
 #Env vars:
 #AREA_GEOJSON
@@ -39,7 +41,7 @@ class ChangeHandler(osmium.SimpleHandler):
         self.south = 0
         self.west = 0
         self.changeset = {}
-
+        self.stats = {}
 
     def location_in_bbox(self, location):
         """
@@ -164,8 +166,12 @@ class ChangeHandler(osmium.SimpleHandler):
                         add_node = self.has_tag_changed(
                             node.id, node.tags, key_re, node.version, "node")
                     if add_node:
-                        if self.changeset:
-                            self.changeset = {
+                        if tag_name in self.stats:
+                            self.stats[tag_name].append(node.changeset)
+                        else:
+                            self.stats[tag_name] = [node.changeset]
+                        if node.changeset in self.changeset:
+                            self.changeset[node.changeset] = {
                                 "changeset": node.changeset,
                                 "user": node.user,
                                 "uid": node.uid,
@@ -173,7 +179,7 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "wids": []
                             }
                         else:
-                            self.changeset["nids"].append(node.id)
+                            self.changeset[node.changeset]["nids"].append(node.id)
                     print("node:changeset a dins:{}".format(node.changeset))
         self.num_nodes += 1
 
@@ -198,15 +204,19 @@ class ChangeHandler(osmium.SimpleHandler):
                         add_way = self.has_tag_changed(
                             way.id, way.tags, key_re, way.version, "way")
                     if add_way:
-                        if self.changeset:
-                            self.changeset["wids"].append(way.id)
+                        if tag_name in self.stats:
+                            self.stats[tag_name].append(way.changeset)
                         else:
-                            self.changeset = {
+                            self.stats[tag_name] = [way.changeset]
+                        if way.changeset in self.changeset:
+                            self.changeset[way.changeset]["wids"].append(way.id)
+                        else:
+                            self.changeset[way.changeset] = {
                                 "changeset": way.changeset,
                                 "user": way.user,
                                 "uid": way.uid,
                                 "nids": [],
-                                "wids": []
+                                "wids": [way.id]
                             }
                     print("way:changeset a dins:{}".format(way.changeset))
         self.num_ways += 1
@@ -229,6 +239,26 @@ class ChangeWithin(object):
         self.conf = {}
         self.env_vars = {}
         self.handler = ChangeHandler()
+        self.osc_file = None
+        self.changesets = []
+        self.stats = {}
+
+        self.jinja_env = Environment(extensions=['jinja2.ext.i18n'])
+        self.text_tmpl = self.get_template('text_template.txt')
+        self.html_tmpl = self.get_template('html_template.html')
+
+    def get_template(self, template_name):
+        """
+        Returns the template
+
+        :param template_name: Template name as a string
+        :return: Template
+        """
+
+        url = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', template_name)
+        with open(url) as f:
+            template_text = f.read()
+        return self.jinja_env.from_string(template_text)
 
     def load_config(self, config=None):
         """
@@ -241,6 +271,22 @@ class ChangeWithin(object):
 
         self.conf = ConfigObj(self.env_vars["config"])
 
+        languages = ['en']
+        if 'language' in self.conf['email']:
+            languages = [self.conf['email']['language']].extend(languages)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        url_locales = os.path.join(dir_path, 'locales')
+        lang = gettext.translation(
+            'messages',
+            localedir=url_locales,
+            languages=languages)
+        lang.install()
+        translations = gettext.translation(
+            'messages',
+            localedir=url_locales,
+            languages=languages)
+        self.jinja_env.install_gettext_translations(translations)
+
         self.handler.set_bbox(*self.conf["area"]["bbox"])
         for name in self.conf["tags"]:
             value, key = self.conf["tags"][name]["tags"].split("=")
@@ -248,19 +294,85 @@ class ChangeWithin(object):
             self.handler.set_tags(name, key, value, types)
         print(self.conf)
 
-    def process_file(self, filename):
+    def process_file(self, filename=None):
         """
         
         :param filename: 
         :return: 
         """
-        self.handler.apply_file(filename, osmium.osm.osm_entity_bits.CHANGESET)
+        if filename is None:
+            self.osc_file = get_osc()
+            self.handler.apply_file(self.osc_file, osmium.osm.osm_entity_bits.CHANGESET)
+        else:
+            self.handler.apply_file(filename, osmium.osm.osm_entity_bits.CHANGESET)
+
+        self.changesets = self.handler.changeset
+        self.stats = self.handler.stats
+        self.stats["total"] = len(self.changesets)
+
+
+    def report(self):
+        """
+        Generates the report and sends it
+
+        :return: None
+        """
+        from datetime import datetime
+        print ("self.changesets:{}".format(self.changesets))
+        if len(self.changesets) > 1000:
+            self.changesets = self.changesets[:999]
+            self.stats['limit_exceed'] = 'Note: For performance reasons only the first 1000 changesets are displayed.'
+
+        now = datetime.now()
+
+        for state in self.stats:
+            if state != "total":
+                self.stats[state] = len(set(self.stats[state]))
+
+        template_data = {
+            'changesets': self.changesets,
+            'stats': self.stats,
+            'date': now.strftime("%B %d, %Y"),
+            'tags': self.conf['tags'].keys()
+        }
+        print (template_data)
+        html_version = self.html_tmpl.render(**template_data)
+        text_version = self.text_tmpl.render(**template_data)
+
+        if 'domain' in self.conf['mailgun'] and 'api_key' in self.conf['mailgun']:
+            resp = requests.post(('https://api.mailgun.net/v2/{0}/messages'.format( self.conf['mailgun']['domain'])),
+                auth=('api', self.conf['mailgun']['api_key']),
+                data={
+                        'from': 'Change Within <changewithin@{}>'.format(self.conf['mailgun']['domain']),
+                        'to': self.conf['email']['recipients'].split(),
+                        'subject': 'OSM building and address changes {0}'.format(now.strftime("%B %d, %Y")),
+                        'text': text_version,
+                        "html": html_version,
+                })
+        file_name = 'osm_change_report_{0}.html'.format(now.strftime('%m-%d-%y'))
+        f_out = open(file_name, 'w')
+        f_out.write(html_version.encode('utf-8'))
+        f_out.close()
+        print('Wrote {0}'.format(file_name))
+        #os.unlink(self.osc_file)
+
+    def load_file(self):
+        """
+        Loads the OSC file
+
+        :return: None
+        """
+        import sys
+
+        sys.stderr.write('getting state\n')
 
 
 if __name__ == '__main__':
     c = ChangeWithin()
     c.load_config()
+    c.load_file()
     c.process_file("662.osc")
+    c.report()
 
     #h = CounterHandler()
     #h.apply_file("662.osc", osmium.osm.osm_entity_bits.CHANGESET)
