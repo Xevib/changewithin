@@ -61,6 +61,11 @@ class ChangesWithinOsmiumTest(unittest.TestCase):
         """
         self.cw = ChangesWithinOsmium()
 
+    def test_662(self):
+        c = ChangesWithinOsmium()
+        c.load_file()
+        c.process_file("662.osc")
+
 
 class ChangesWithinTest(unittest.TestCase):
     """
