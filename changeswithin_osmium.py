@@ -11,7 +11,6 @@ from jinja2 import Environment
 from osconf import config_from_environment
 import osmapi
 from lib import get_osc
-import gettext
 
 #Env vars:
 #AREA_GEOJSON
