@@ -1,11 +1,9 @@
-import argparse
 import os
 import re
 
 from configobj import ConfigObj
 import osmium
 import requests
-import json
 import gettext
 from jinja2 import Environment
 from osconf import config_from_environment
