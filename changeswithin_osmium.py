@@ -307,7 +307,6 @@ class ChangeWithin(object):
         self.stats = self.handler.stats
         self.stats["total"] = len(self.changesets)
 
-
     def report(self):
         """
         Generates the report and sends it
@@ -332,20 +331,22 @@ class ChangeWithin(object):
             'date': now.strftime("%B %d, %Y"),
             'tags': self.conf['tags'].keys()
         }
-        print (template_data)
         html_version = self.html_tmpl.render(**template_data)
         text_version = self.text_tmpl.render(**template_data)
 
         if 'domain' in self.conf['mailgun'] and 'api_key' in self.conf['mailgun']:
-            resp = requests.post(('https://api.mailgun.net/v2/{0}/messages'.format( self.conf['mailgun']['domain'])),
-                auth=('api', self.conf['mailgun']['api_key']),
-                data={
-                        'from': 'Change Within <changewithin@{}>'.format(self.conf['mailgun']['domain']),
-                        'to': self.conf['email']['recipients'].split(),
-                        'subject': 'OSM building and address changes {0}'.format(now.strftime("%B %d, %Y")),
-                        'text': text_version,
-                        "html": html_version,
-                })
+            if "api_url" in self.conf["mailgun"]:
+                url = self.conf["mailgun"]["api_url"]
+            else:
+                url = 'https://api.mailgun.net/v3/{0}/messages'.format(self.conf['mailgun']['domain'])
+            resp = requests.post(
+                url,
+                auth=("api", self.conf['mailgun']['api_key']),
+                data={"from": "OSM Changes <mailgun@{}>".format(self.conf['mailgun']['domain']),
+                      "to": self.conf["email"]["recipients"].split(),
+                      "subject": 'OSM building and address changes {0}'.format(now.strftime("%B %d, %Y")),
+                      "text": text_version,
+                      "html": html_version})
         file_name = 'osm_change_report_{0}.html'.format(now.strftime('%m-%d-%y'))
         f_out = open(file_name, 'w')
         f_out.write(html_version.encode('utf-8'))
