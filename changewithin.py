@@ -1,415 +1,72 @@
-import requests
-import json
 import os
-import sys
-from configobj import ConfigObj
-from lxml import etree
-from datetime import datetime
-import argparse
-from jinja2 import Environment
-import gettext
-import osmapi
 import re
-from multiprocessing import Process, Queue, current_process
 
-from lib import get_bbox, get_osc, point_in_box, point_in_poly, load_changeset
-from lib import has_tag
+from configobj import ConfigObj
+import osmium
+import requests
+import gettext
+from jinja2 import Environment
+from osconf import config_from_environment
+import osmapi
+from lib import get_osc
 
 
-def has_tag_changed(gid, old_tags, watch_tags, version, elem):
+# Env vars:
+# AREA_GEOJSON
+# MAILGUN_DOMAIN
+# MAILGUN_API_KEY
+# EMAIL_RECIPIENTS
+# EMAIL_LANGUAGE
+# CONFIG
+
+
+class ChangeHandler(osmium.SimpleHandler):
     """
-    Checks if tags has changed on the changeset
-
-    :param gid: Geometry id
-    :param old_tags: Old tags
-    :param watch_tags: Tags to check
-    :param version: version to check
-    :param elem: Type of element
-    :return: Boolean
-    """
-
-    previous_elem = {}
-    osm_api = osmapi.OsmApi()
-    if elem == 'node':
-        previous_elem = osm_api.NodeHistory(gid)[version - 1]
-    elif elem == 'way':
-        previous_elem = osm_api.WayHistory(gid)[version - 1]
-    elif elem == 'relation':
-        previous_elem = osm_api.RelationHistory(gid)[version - 1]
-    if previous_elem:
-        previous_tags = previous_elem['tag']
-        out_tags = {}
-        for key, value in previous_tags.items():
-            if re.match(watch_tags, key):
-                out_tags[key] = value
-        previous_tags = out_tags
-
-        return previous_tags != old_tags
-    else:
-        return False
-
-
-def get_tags(element, keys):
-    """
-    Method that returns the tags of a lxml element
-
-    :param element: Lxml element
-    :param keys: Keys to select
-    :return: Dict with the tag-value
-    """
-    ntags = element.findall(".//tag[@k]")
-    re_keys = re.compile(keys)
-    tags = {}
-    for element in ntags:
-        if re.match(re_keys, element.attrib['k']):
-            tags[element.attrib['k']] = element.attrib['v']
-    return tags
-
-
-def proces_ways( work_queue, done_queue, interest_tags, nodes, config, checkhistoy=True):
-    """
-    Process the ways of the OSC file
-
-    :return: None
-    """
-    try:
-        sys.stderr.write('finding ways proc {}\n'.format(current_process().name))
-        # Find ways that contain nodes that were previously determined to fall within specified area
-
-        for str_way in iter(work_queue.get, 'STOP'):
-            if str_way == 'STOP':
-                print('proc:{} ha trobat stop'.format(current_process().name))
-                return True
-            changeset = {}
-            w = etree.fromstring(str_way)
-            cid = w.get('changeset')
-            wid = int(w.get('id', -1))
-            version = int(w.get('version'))
-            modified_node = False
-            for int_tag in interest_tags['way']:
-                old_tags = get_tags(w, int_tag['k'])
-                # Only if the way has 'building' tag
-
-                if has_tag(w, int_tag['k']):
-                    for nd in w.iterfind('./nd'):
-                        if nd.get('ref', -2) in nodes.keys():
-                            changeset[cid] = {
-                                'id': cid,
-                                'user': w.get('user'),
-                                'uid': w.get('uid'),
-                                'wids': set(),
-                                'nodes': {}
-                            }
-                            for tag in config['tags'].keys():
-                                changeset[cid][tag + '_way'] = set()
-                                changeset[cid][tag + '_nd'] = {}
-                            nid = nd.get('ref', -2)
-                            changeset[cid]['nodes'][nid] = nodes[nid]
-                            changeset[cid]['wids'].add(wid)
-                            #self.stats[int_tag['name']] += 1
-                            modified_node = True
-
-                    if modified_node:
-                        #self.stats[int_tag['name']] += 1
-                        if checkhistoy and version > 1:
-                            if has_tag_changed(wid, old_tags, int_tag['k'], version, 'way'):
-                                if cid not in changeset:
-                                    changeset[cid] = {
-                                        'id': cid,
-                                        'user': w.get('user'),
-                                        'uid': w.get('uid'),
-                                        'wids': set(),
-                                        'nodes': {}
-                                    }
-                                    for tag in config['tags'].keys():
-                                        changeset[cid][tag + '_way'] = set()
-                                        changeset[cid][tag + '_nd'] = {}
-                                changeset[cid][int_tag['name'] + '_way'].add(wid)
-                                #self.stats[int_tag['name']] += 1
-                        else:
-                            if cid not in changeset:
-                                changeset[cid] = {
-                                    'id': cid,
-                                    'user': w.get('user'),
-                                    'uid': w.get('uid'),
-                                    'wids': set(),
-                                    'nodes': {}
-                                }
-                                for tag in config['tags'].keys():
-                                    changeset[cid][tag + '_way'] = set()
-                                    changeset[cid][tag + '_nd'] = {}
-                            changeset[cid][int_tag['name'] + '_way'].add(wid)
-                            #self.stats[int_tag['name']] += 1
-                if changeset:
-                    done_queue.put(changeset)
-        print('proc:{} ha acabat'.format(current_process().name))
-    except Exception as e:
-        print ("%s failed on with: %s" % (current_process().name, e.message))
-        done_queue.put(
-            "%s failed on with: %s" % (current_process().name, e.message))
-    return True
-
-
-class ChangesWithin(object):
-    """
-    Function that manages te changeswithin program
+    Class that handles the changes
     """
 
     def __init__(self):
         """
-        Initiliazes the class
+        Class constructor
         """
-
-        self.jinja_env = Environment(extensions=['jinja2.ext.i18n'])
-        self.nodes = {}
-        self.changesets = {}
-        self.stats = {}
-        self.osc_file = ''
-        self.text_tmpl = ''
-        self.html_tmpl = ''
-        self.aoi_box = []
-        self.aoi_poly = {}
-        self.config = ConfigObj()
-        self.osc_url = ''
-        self.tree = etree.ElementTree()
-        self.interest_tags = {
-            'node': [],
-            'way': []
-        }
-        self.osm_api = osmapi.OsmApi()
+        osmium.SimpleHandler.__init__(self)
+        self.num_nodes = 0
+        self.num_ways = 0
+        self.num_rel = 0
+        self.tags = {}
+        self.north = 0
+        self.east = 0
+        self.south = 0
+        self.west = 0
+        self.changeset = {}
         self.stats = {}
 
-    def get_template(self, template_name):
+    def location_in_bbox(self, location):
         """
-        Returns the template
+        Checks if the location is in the bounding box
 
-        :param template_name: Template name as a string
-        :return: Template
-        """
-
-        url = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', template_name)
-        with open(url) as f:
-            template_text = f.read()
-        return self.jinja_env.from_string(template_text)
-
-    def load_config(self):
-        """
-        Loads the configuration from os env and config file
-
-        :return: None
+        :param location: Location
+        :return: Boolean
         """
 
-        dir_path = os.path.dirname(os.path.abspath(__file__))
+        return self.north > location.lat > self.south and self.east > location.lon > self.west
 
-        parser = argparse.ArgumentParser(description='Generates an email digest of OpenStreetMap building and address changes.')
-        parser.add_argument('--oscurl', type=str,
-                           help='OSC file URL. For example: http://planet.osm.org/replication/hour/000/021/475.osc.gz. If none given, defaults to latest available day.')
-        parser.add_argument('--config', type=str,
-                           help='Config file')
-        args = parser.parse_args()
-
-        #
-        # Configure for use. See config.ini for details.
-        #
-        if 'CONFIG' in os.environ:
-            args.config = os.environ['CONFIG']
-
-        if args.config:
-            self.config = ConfigObj(os.path.join(dir_path, args.config))
-        else:
-            self.config = ConfigObj(os.path.join(dir_path, 'config.ini'))
-        languages = ['en']
-        if 'language' in self.config['email']:
-            languages = [self.config['email']['language']].extend(languages)
-
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        url_locales = os.path.join(dir_path, 'locales')
-
-        lang = gettext.translation(
-            'messages',
-            localedir=url_locales,
-            languages=languages)
-        lang.install()
-        translations = gettext.translation(
-            'messages',
-            localedir=url_locales,
-            languages=languages)
-        self.jinja_env.install_gettext_translations(translations)
-
-        #
-        # Set up arguments and parse them.
-        #
-        self.text_tmpl = self.get_template('text_template.txt')
-        self.html_tmpl = self.get_template('html_template.html')
-        #
-        # Environment variables override config file.
-        #
-        if 'AREA_GEOJSON' in os.environ:
-            self.config['area']['geojson'] = os.environ['AREA_GEOJSON']
-
-        if 'MAILGUN_DOMAIN' in os.environ:
-            self.config['mailgun']['domain'] = os.environ['MAILGUN_DOMAIN']
-
-        if 'MAILGUN_API_KEY' in os.environ:
-            self.config['mailgun']['api_key'] = os.environ['MAILGUN_API_KEY']
-
-        if 'EMAIL_RECIPIENTS' in os.environ:
-            self.config['email']['recipients'] = os.environ['EMAIL_RECIPIENTS']
-
-        if 'EMAIL_LANGUAGE' in os.environ:
-            self.config['email']['language'] = os.environ['EMAIL_LANGUAGE']
-
-
-        #
-        # Get started with the area of interest (AOI).
-        #
-
-        aoi_href = self.config['area']['geojson']
-        aoi_file = os.path.join(dir_path, aoi_href)
-
-        if os.path.exists(aoi_file):
-            # normal file, available locally
-            aoi = json.load(open(aoi_file))
-
-        else:
-            # possible remote file, try to request it
-            aoi = requests.get(aoi_href).json()
-
-        self.aoi_poly = aoi['features'][0]['geometry']['coordinates'][0]
-        self.aoi_box = get_bbox(self.aoi_poly)
-        self.osc_url = args.oscurl
-
-        for tag in self.config.get('tags', {}):
-            conf_tag = self.config['tags'][tag]['tags'].split('=')
-            watch_tag = {'k': conf_tag[0], 'v': conf_tag[1], 'name': tag}
-            self.stats[tag] = 0
-            if 'node' in self.config['tags'][tag]['type'].split(','):
-                self.interest_tags['node'].append(watch_tag)
-
-            if 'way' in self.config['tags'][tag]['type'].split(','):
-                self.interest_tags['way'].append(watch_tag)
-
-    def get_config(self):
+    def way_in_bbox(self, nodes):
         """
-        Returns the config of the class
-        :return: ConfigParser
+        Checks if the way is in the bounding box
+        :param nodes: Nodes of the way
+        :return: Booelan
         """
 
-        return self.config
+        inside = False
+        x = 0
+        while not inside and x < len(nodes):
+            if nodes[x].location.valid():
+                inside = self.location_in_bbox(nodes[x].location)
+            x += 1
+        return inside
 
-    def load_file(self):
-        """
-        Loads the OSC file
-
-        :return: None
-        """
-
-        sys.stderr.write('getting state\n')
-        self.osc_file = get_osc(self.osc_url)
-        sys.stderr.write('reading file\n')
-        self.tree = etree.parse(self.osc_file)
-
-    def _parallel_process(self, function, elements, **kwargs):
-        """
-        Method that parallelizes a function over a list of elements
-
-        :param function: Method to parallelize
-        :param elements: List of elements
-        :return: None
-        """
-
-        workers = 1
-        work_queue = Queue()
-        done_queue = Queue()
-        processes = []
-        #Entre 6500 i 6575
-        for element in elements:
-            work_queue.put(etree.tostring(element))
-        del elements
-        kwargs['work_queue'] = work_queue
-        kwargs['done_queue'] = done_queue
-        for w in range(workers):
-            p = Process(target=function, kwargs=kwargs)
-            p.start()
-            processes.append(p)
-            work_queue.put('STOP')
-        print ('abans de join')
-        for p in processes:
-            p.join()
-            print ('passat join {}'.format(p))
-        print('vies procesades')
-        done_queue.put('STOP')
-
-        for changes in iter(done_queue.get, 'STOP'):
-            self.changesets.update(changes)
-
-    def proces_data(self):
-        """
-        Proces the whole OSC file
-
-        :return: None
-        """
-        sys.stderr.write('finding points\n')
-
-        # Find nodes that fall within specified area
-        self.proces_nodes()
-
-        elements = self.tree.xpath('//modify/way')
-        print ('modificats:{}'.format(len(elements)))
-        #elements = self.tree.xpath('//way')
-        #print 'tots:{}'.format(len(elements))
-        self._parallel_process(proces_ways, elements, interest_tags=self.interest_tags, nodes=self.nodes, config=self.config, checkhistoy=True)
-        self.changesets = map(load_changeset, self.changesets.values())
-        self.stats['total'] = len(self.changesets)
-
-    def proces_nodes(self):
-        """
-        Proces the nodes
-
-        :return: None
-        """
-        # Find nodes that fall within specified area
-        #context = iter(etree.iterparse(self.osc_file, events=('start', 'end')))
-
-        elements = self.tree.xpath('//node')
-        for n in elements:
-            lon = float(n.get('lon', 0))
-            lat = float(n.get('lat', 0))
-            if point_in_box(lon, lat, self.aoi_box) and point_in_poly(lon, lat, self.aoi_poly):
-                cid = n.get('changeset')
-                nid = n.get('id', -1)
-                self._add_node(n, nid)
-                version = int(n.get('version'))
-                for int_tag in self.interest_tags['node']:
-                    if has_tag(n, int_tag['k'], int_tag['v']):
-                        old_tags = self._get_tags(n, int_tag['k'])
-
-                        # Capture address changes
-                        if version != 1:
-                            if self._has_tag_changed(nid, old_tags, int_tag['k'], version, 'node'):
-                                self._add_changeset(n, cid)
-                                self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                                self.changesets[cid][int_tag['name'] + '_nd'][nid] = self.nodes[nid]
-                                self.stats[int_tag['name']] += 1
-                        elif len(old_tags):
-                            self._add_changeset(n, cid)
-                            self.changesets[cid]['nodes'][nid] = self.nodes[nid]
-                            self.changesets[cid][int_tag['name'] + '_nd'][nid] = self.nodes[nid]
-                            self.stats[int_tag['name']] += 1
-
-    def _prety_tags(self, tags):
-        """
-        Converts list of k-v dict into python dict
-        :param tags: list of k-v dicts
-        :return: Dict
-        """
-
-        out_tags = {}
-        for tag in tags:
-            out_tags[tag['k']] = tag['v']
-        return out_tags
-
-    def _has_tag_changed(self, gid, old_tags, watch_tags, version, elem):
+    def has_tag_changed(self, gid, old_tags, watch_tags, version, elem):
         """
         Checks if tags has changed on the changeset
 
@@ -420,16 +77,15 @@ class ChangesWithin(object):
         :param elem: Type of element
         :return: Boolean
         """
-        import time
-        time.sleep(0.1)
-        print ('_has_tag_changed-> gid:{}'.format(gid))
+
         previous_elem = {}
+        osm_api = osmapi.OsmApi()
         if elem == 'node':
-            previous_elem = self.osm_api.NodeHistory(gid)[version-1]
+            previous_elem = osm_api.NodeHistory(gid)[version - 1]
         elif elem == 'way':
-            previous_elem = self.osm_api.WayHistory(gid)[version - 1]
+            previous_elem = osm_api.WayHistory(gid)[version - 1]
         elif elem == 'relation':
-            previous_elem = self.osm_api.RelationHistory(gid)[version - 1]
+            previous_elem = osm_api.RelationHistory(gid)[version - 1]
         if previous_elem:
             previous_tags = previous_elem['tag']
             out_tags = {}
@@ -442,22 +98,220 @@ class ChangesWithin(object):
         else:
             return False
 
-    def _get_tags(self, element, keys):
+    def has_tag(self, element, key_re, value_re):
         """
-        Method that returns the tags of a lxml element
+        Checks if the element have the key,value
 
-        :param element: Lxml element
-        :param keys: Keys to select
-        :return: Dict with the tag-value
+        :param element: Element to check
+        :param key_re: Compiled re expression of key 
+        :param value_re: Compiled re expression of value
+        :return: boolean
         """
-        ntags = element.findall(".//tag[@k]")
-        re_keys = re.compile(keys)
-        tags = {}
-        for element in ntags:
-            if re.match(re_keys,element.attrib['k']):
-                tags[element.attrib['k']] = element.attrib['v']
-        return tags
+        for tag in element:
+            key = tag.k
+            value = tag.v
+            if key_re.match(key) and value_re.match(value):
+                return True
+        return False
 
+    def set_tags(self, name, key, value, element_types):
+        """
+        Sets the tags to wathc on the handler
+        :param name: Name of the tags
+        :param key: Key value expression
+        :param value: Value expression
+        :param element_types: List of element types
+        :return: None
+        """
+        self.tags[name] = {}
+        self.tags[name]["key_re"] = re.compile(key)
+        self.tags[name]["value_re"] = re.compile(value)
+        self.tags[name]["types"] = element_types
+
+    def set_bbox(self, north, east, south, west):
+        """
+        Sets the bounding box to check
+
+        :param north: North of bbox
+        :param east: East of the bbox
+        :param south: South of the bbox
+        :param west: West of the bbox
+        :return: None
+        """
+        self.north = float(north)
+        self.east = float(east)
+        self.south = float(south)
+        self.west = float(west)
+
+    def node(self, node):
+        """
+        Attends the nodes in the file
+
+        :param node: Node to check 
+        :return: None
+        """
+
+        if self.location_in_bbox(node.location):
+            for tag_name in self.tags.keys():
+                key_re = self.tags[tag_name]["key_re"]
+                value_re = self.tags[tag_name]["value_re"]
+                if self.has_tag(node.tags, key_re, value_re):
+                    if node.deleted:
+                        add_node = True
+                    elif node.version == 1:
+                        add_node = True
+                    else:
+                        add_node = self.has_tag_changed(
+                            node.id, node.tags, key_re, node.version, "node")
+                    if add_node:
+                        if tag_name in self.stats:
+                            self.stats[tag_name].append(node.changeset)
+                        else:
+                            self.stats[tag_name] = [node.changeset]
+                        if node.changeset in self.changeset:
+                            self.changeset[node.changeset] = {
+                                "changeset": node.changeset,
+                                "user": node.user,
+                                "uid": node.uid,
+                                "nids": [],
+                                "wids": []
+                            }
+                        else:
+                            self.changeset[node.changeset]["nids"].append(
+                                node.id)
+                    print("node:changeset a dins:{}".format(node.changeset))
+        self.num_nodes += 1
+
+    def way(self, way):
+        """
+        Attends the ways in the file
+
+        :param way: Way to check
+        :return: None
+        """
+
+        if self.way_in_bbox(way.nodes):
+            for tag_name in self.tags.keys():
+                key_re = self.tags[tag_name]["key_re"]
+                value_re = self.tags[tag_name]["value_re"]
+                if self.has_tag(way.tags, key_re, value_re):
+                    if way.deleted:
+                        add_way = True
+                    elif way.version == 1:
+                        add_way = True
+                    else:
+                        add_way = self.has_tag_changed(
+                            way.id, way.tags, key_re, way.version, "way")
+                    if add_way:
+                        if tag_name in self.stats:
+                            self.stats[tag_name].append(way.changeset)
+                        else:
+                            self.stats[tag_name] = [way.changeset]
+                        if way.changeset in self.changeset:
+                            self.changeset[way.changeset]["wids"].append(way.id)
+                        else:
+                            self.changeset[way.changeset] = {
+                                "changeset": way.changeset,
+                                "user": way.user,
+                                "uid": way.uid,
+                                "nids": [],
+                                "wids": [way.id]
+                            }
+                    print("way:changeset a dins:{}".format(way.changeset))
+        self.num_ways += 1
+
+    def relation(self, r):
+        # print 'rel:{}'.format(self.num_rel)
+        # for member in r.members:
+        #    print member
+        self.num_rel += 1
+
+
+class ChangeWithin(object):
+    """
+    Class that process the OSC files
+    """
+
+    def __init__(self):
+        """
+        Initiliazes the class
+        """
+        self.conf = {}
+        self.env_vars = {}
+        self.handler = ChangeHandler()
+        self.osc_file = None
+        self.changesets = []
+        self.stats = {}
+
+        self.jinja_env = Environment(extensions=['jinja2.ext.i18n'])
+        self.text_tmpl = self.get_template('text_template.txt')
+        self.html_tmpl = self.get_template('html_template.html')
+
+    def get_template(self, template_name):
+        """
+        Returns the template
+
+        :param template_name: Template name as a string
+        :return: Template
+        """
+
+        url = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                           'templates', template_name)
+        with open(url) as f:
+            template_text = f.read()
+        return self.jinja_env.from_string(template_text)
+
+    def load_config(self, config=None):
+        """
+        Loads the configuration from the file
+        :config_file: Configuration as a dict
+        :return: None
+        """
+
+        self.env_vars = config_from_environment('bard', ['config'])
+
+        self.conf = ConfigObj(self.env_vars["config"])
+
+        languages = ['en']
+        if 'language' in self.conf['email']:
+            languages = [self.conf['email']['language']].extend(languages)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        url_locales = os.path.join(dir_path, 'locales')
+        lang = gettext.translation(
+            'messages',
+            localedir=url_locales,
+            languages=languages)
+        lang.install()
+        translations = gettext.translation(
+            'messages',
+            localedir=url_locales,
+            languages=languages)
+        self.jinja_env.install_gettext_translations(translations)
+
+        self.handler.set_bbox(*self.conf["area"]["bbox"])
+        for name in self.conf["tags"]:
+            value, key = self.conf["tags"][name]["tags"].split("=")
+            types = self.conf["tags"][name]["tags"].split(",")
+            self.handler.set_tags(name, key, value, types)
+        print(self.conf)
+
+    def process_file(self, filename=None):
+        """
+
+        :param filename: 
+        :return: 
+        """
+        if filename is None:
+            self.osc_file = get_osc()
+            self.handler.apply_file(self.osc_file,
+                                    osmium.osm.osm_entity_bits.CHANGESET)
+        else:
+            self.handler.apply_file(filename,
+                                    osmium.osm.osm_entity_bits.CHANGESET)
+
+        self.changesets = self.handler.changeset
+        self.stats = self.handler.stats
+        self.stats["total"] = len(self.changesets)
 
     def report(self):
         """
@@ -465,80 +319,67 @@ class ChangesWithin(object):
 
         :return: None
         """
+        from datetime import datetime
         print ("self.changesets:{}".format(self.changesets))
         if len(self.changesets) > 1000:
             self.changesets = self.changesets[:999]
-            self.stats['limit_exceed'] = 'Note: For performance reasons only the first 1000 changesets are displayed.'
+            self.stats[
+                'limit_exceed'] = 'Note: For performance reasons only the first 1000 changesets are displayed.'
 
         now = datetime.now()
+
+        for state in self.stats:
+            if state != "total":
+                self.stats[state] = len(set(self.stats[state]))
 
         template_data = {
             'changesets': self.changesets,
             'stats': self.stats,
             'date': now.strftime("%B %d, %Y"),
-            'tags': self.config['tags'].keys()
+            'tags': self.conf['tags'].keys()
         }
-        print (template_data)
         html_version = self.html_tmpl.render(**template_data)
         text_version = self.text_tmpl.render(**template_data)
 
-        if 'domain' in self.config['mailgun'] and 'api_key' in self.config['mailgun']:
-            resp = requests.post(('https://api.mailgun.net/v2/{0}/messages'.format( self.config['mailgun']['domain'])),
-                auth=('api', self.config['mailgun']['api_key']),
-                data={
-                        'from': 'Change Within <changewithin@{}>'.format(self.config['mailgun']['domain']),
-                        'to': self.config['email']['recipients'].split(),
-                        'subject': 'OSM building and address changes {0}'.format(now.strftime("%B %d, %Y")),
-                        'text': text_version,
-                        "html": html_version,
-                })
-        file_name = 'osm_change_report_{0}.html'.format(now.strftime('%m-%d-%y'))
+        if 'domain' in self.conf['mailgun'] and 'api_key' in self.conf[
+            'mailgun']:
+            if "api_url" in self.conf["mailgun"]:
+                url = self.conf["mailgun"]["api_url"]
+            else:
+                url = 'https://api.mailgun.net/v3/{0}/messages'.format(
+                    self.conf['mailgun']['domain'])
+            resp = requests.post(
+                url,
+                auth=("api", self.conf['mailgun']['api_key']),
+                data={"from": "OSM Changes <mailgun@{}>".format(
+                    self.conf['mailgun']['domain']),
+                      "to": self.conf["email"]["recipients"].split(),
+                      "subject": 'OSM building and address changes {0}'.format(
+                          now.strftime("%B %d, %Y")),
+                      "text": text_version,
+                      "html": html_version})
+        file_name = 'osm_change_report_{0}.html'.format(
+            now.strftime('%m-%d-%y'))
         f_out = open(file_name, 'w')
         f_out.write(html_version.encode('utf-8'))
         f_out.close()
         print('Wrote {0}'.format(file_name))
-        os.unlink(self.osc_file)
+        # os.unlink(self.osc_file)
 
-    def _add_changeset(self, el, cid):
+    def load_file(self):
         """
-        Add a changeset on the list of rellevant changesets
+        Loads the OSC file
 
-        :param el:  Element
-        :param cid: Changeset id
         :return: None
         """
+        import sys
 
-        if not self.changesets.get(cid, False):
-            self.changesets[cid] = {
-                'id': cid,
-                'user': el.get('user'),
-                'uid': el.get('uid'),
-                'wids': set(),
-                'nodes': {}
-            }
-        for tag in self.config['tags'].keys():
-            self.changesets[cid][tag + '_way'] = set()
-            self.changesets[cid][tag + '_nd'] = {}
+        sys.stderr.write('getting state\n')
 
-    def _add_node(self, el, nid):
-        """
-        Adds node to the list of rellevant nodes
-
-        :param el: Element
-        :param nid: Node id
-        :return: None
-        """
-
-        if not self.nodes.get(nid, False):
-            self.nodes[nid] = {
-                'id': nid,
-                'lat': float(el.get('lat')),
-                'lon': float(el.get('lon'))
-            }
 
 if __name__ == '__main__':
-    c = ChangesWithin()
+    c = ChangeWithin()
     c.load_config()
     c.load_file()
-    c.proces_data()
+    c.process_file("662.osc")
     c.report()
