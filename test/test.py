@@ -1,11 +1,8 @@
 from lib import get_state, get_bbox, point_in_box, get_point, has_tag
 import unittest
-import json
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
 from osmium.osm import Location
-import os
-from lxml import etree
 
 
 class HandlerTest(unittest.TestCase):
