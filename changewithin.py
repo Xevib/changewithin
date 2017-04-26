@@ -357,6 +357,9 @@ class ChangeWithin(object):
                           now.strftime("%B %d, %Y")),
                       "text": text_version,
                       "html": html_version})
+            print("response:{}".format(resp.status_code))
+            print("mailgun response:{}".format(resp.content))
+
         file_name = 'osm_change_report_{0}.html'.format(
             now.strftime('%m-%d-%y'))
         f_out = open(file_name, 'w')
