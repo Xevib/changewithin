@@ -381,5 +381,5 @@ if __name__ == '__main__':
     c = ChangeWithin()
     c.load_config()
     c.load_file()
-    c.process_file("662.osc")
+    c.process_file()
     c.report()
