@@ -1,4 +1,3 @@
-from lib import get_state, get_bbox, point_in_box, get_point, has_tag
 import unittest
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
