@@ -209,21 +209,3 @@ def get_point(node):
     """
 
     return [node["lon"], node["lat"]]
-
-
-def geojson_feature_collection(points=None, polygons=None):
-    """
-    Generates a geojson feature collection from points and polygons
-
-    :param points: List of points
-    :param polygons: List of polygons
-    :return: Geojson feature collection as a dict
-    """
-
-    collection = {"type": "FeatureCollection", "features": []}
-    if len(points):
-        collection["features"].append(geojson_multi_point(points))
-    for p in polygons:
-        if len(p):
-            collection["features"].append(geojson_polygon([p]))
-    return collection
