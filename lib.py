@@ -63,32 +63,6 @@ def get_osc(stateurl=None):
     # knock off the ".gz" suffix and return
     return filename[:-3]
 
-# Returns -lon, -lat, +lon, +lat
-#
-#    +---[+lat]---+
-#    |            |
-# [-lon]       [+lon]
-#    |            |
-#    +---[-lat]-- +
-
-
-def get_bbox(poly):
-    """
-    Returns the bbox  of the coordinates of a geometry
-
-    :param poly:
-    :return: Bounding box
-    """
-
-    box = [200, 200, -200, -200]
-    for p in poly:
-        if p[0] < box[0]: box[0] = p[0]
-        if p[0] > box[2]: box[2] = p[0]
-        if p[1] < box[1]: box[1] = p[1]
-        if p[1] > box[3]: box[3] = p[1]
-    return box
-
-
 def point_in_box(x, y, box):
     """
     Checks if a point is inside a bounding box
