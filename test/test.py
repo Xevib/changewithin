@@ -57,6 +57,13 @@ class ChangesWithinTest(unittest.TestCase):
         """
         self.cw = ChangeWithin()
 
+    def test_osc1(self):
+        """
+        Tests load of test1.osc
+        :return: None
+        """
+        self.cw.load_file("test/test1.osc")
+
 
 # class ChangesWithinTest(unittest.TestCase):
 #     """
