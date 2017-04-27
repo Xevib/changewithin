@@ -168,7 +168,7 @@ class ChangeHandler(osmium.SimpleHandler):
                             self.stats[tag_name].append(node.changeset)
                         else:
                             self.stats[tag_name] = [node.changeset]
-                        if node.changeset in self.changeset:
+                        if node.changeset not in self.changeset:
                             self.changeset[node.changeset] = {
                                 "changeset": node.changeset,
                                 "user": node.user,
