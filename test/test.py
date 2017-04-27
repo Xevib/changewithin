@@ -74,7 +74,6 @@ class ChangesWithinTest(unittest.TestCase):
             }
         }
         self.cw.process_file("test/test1.osc")
-        print "acabat"
 
 # class ChangesWithinTest(unittest.TestCase):
 #     """
