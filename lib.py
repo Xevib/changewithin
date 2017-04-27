@@ -63,67 +63,6 @@ def get_osc(stateurl=None):
     # knock off the ".gz" suffix and return
     return filename[:-3]
 
-def point_in_box(x, y, box):
-    """
-    Checks if a point is inside a bounding box
-
-    :param x: X coordinate
-    :param y: Y coordinate
-    :param box: Bounding box as a list
-    :return: Boolean
-    """
-
-    return x > box[0] and x < box[2] and y > box[1] and y < box[3]
-
-def get_extent(gjson):
-    """
-    Returns the extent of the geojson
-
-    :param gjson: Geojson as a dict
-    :return: bounding box extent as a list
-    """
-
-    extent = {}
-    m = MercatorProjection(0)
-
-    b = get_bbox(extract_coords(gjson))
-    points = [[b[3], b[0]], [b[1], b[2]]]
-
-    if (points[0][0] - points[1][0] == 0) or (points[1][1] - points[0][1] == 0):
-        extent['lat'] = points[0][0]
-        extent['lon'] = points[1][1]
-        extent['zoom'] = 18
-    else:
-        i = float('inf')
-         
-        w = 800
-        h = 600
-         
-        tl = [min(map(lambda x: x[0], points)), min(map(lambda x: x[1], points))]
-        br = [max(map(lambda x: x[0], points)), max(map(lambda x: x[1], points))]
-         
-        c1 = m.locationCoordinate(Location(tl[0], tl[1]))
-        c2 = m.locationCoordinate(Location(br[0], br[1]))
-         
-        while (abs(c1.column - c2.column) * 256.0) < w and (abs(c1.row - c2.row) * 256.0) < h:
-            c1 = c1.zoomBy(1)
-            c2 = c2.zoomBy(1)
-         
-        center = m.coordinateLocation(Coordinate(
-            (c1.row + c2.row) / 2,
-            (c1.column + c2.column) / 2,
-            c1.zoom))
-        
-        extent['lat'] = center.lat
-        extent['lon'] = center.lon
-        if c1.zoom > 18:
-            extent['zoom'] = 18
-        else:
-            extent['zoom'] = c1.zoom
-        
-    return extent
-
-
 def has_tag(element, key, value=None):
     """
     Checks if a Element has a tag
