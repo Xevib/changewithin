@@ -62,7 +62,7 @@ class ChangesWithinTest(unittest.TestCase):
         Tests load of test1.osc
         :return: None
         """
-        self.cw.load_file("test/test1.osc")
+        self.cw.process_file("test/test1.osc")
 
 
 # class ChangesWithinTest(unittest.TestCase):
