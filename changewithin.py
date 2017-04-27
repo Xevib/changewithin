@@ -369,20 +369,9 @@ class ChangeWithin(object):
         print('Wrote {0}'.format(file_name))
         # os.unlink(self.osc_file)
 
-    def load_file(self):
-        """
-        Loads the OSC file
-
-        :return: None
-        """
-        import sys
-
-        sys.stderr.write('getting state\n')
-
 
 if __name__ == '__main__':
     c = ChangeWithin()
     c.load_config()
-    c.load_file()
     c.process_file()
     c.report()
