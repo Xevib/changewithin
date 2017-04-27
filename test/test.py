@@ -62,8 +62,19 @@ class ChangesWithinTest(unittest.TestCase):
         Tests load of test1.osc
         :return: None
         """
+        self.cw.conf = {
+            'area': {
+                'bbox': ['41.9933', '2.8576', '41.9623', '2.7847']
+            },
+            'tags': {
+                'all': {
+                    'tags': '.*=.*',
+                    'type': 'node,way'
+                }
+            }
+        }
         self.cw.process_file("test/test1.osc")
-
+        print "acabat"
 
 # class ChangesWithinTest(unittest.TestCase):
 #     """
