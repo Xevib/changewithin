@@ -13,5 +13,5 @@ install:
  - pip install coveralls
  - pip install osmium
 script:
- - PYTHONPATH="." coverage run --source=lib.py,changewithin.py test/test.py && coverage report
+ - PYTHONPATH="." coverage run --include=lib.py,changewithin.py test/test.py && coverage report
  - coveralls
