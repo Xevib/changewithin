@@ -1,12 +1,17 @@
+dist: trusty
 language: python
 python:
   - "2.7"
+  - "3.4"
 
+before_install:
+ - sudo apt-get update -q
 install:
+ - sudo apt-get install python-lxml gcc cmake libgeos++-dev libgdal-dev libsparsehash-dev libboost-dev libbz2-dev zlib1g-dev libexpat1-dev libutfcpp-dev libosmpbf-dev libprotobuf-dev protobuf-compiler cmake-curses-gui make libboost-python-dev
  - pip install -r requirements.txt
  - pip install -r requirements-dev.txt
  - pip install coveralls
- - sudo apt-get install python-lxml
+ - pip install osmium
 script:
  - PYTHONPATH="." coverage run test/test.py && coverage report
  - coveralls
