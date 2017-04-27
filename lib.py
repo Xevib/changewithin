@@ -85,8 +85,6 @@ def has_tag(element, key, value=None):
             if re.match(re_key, e.attrib['k']):
                 return True
 
-
-
 def has_building_tag(n):
     """
     Checks if a change has a building tag
@@ -96,52 +94,6 @@ def has_building_tag(n):
     """
 
     return n.find(".//tag[@k='building']") is not None
-
-
-def get_address_tags(tags):
-    """
-    Returns the addr tags
-
-    :param tags: All tags
-    :return: Addr tags
-    """
-
-    addr_tags = []
-    for t in tags:
-        key = t.get('k')
-        if key.split(':')[0] == 'addr':
-            addr_tags.append(t.attrib)
-    return addr_tags
-
-
-
-
-
-
-def has_address_change(gid, addr, version, elem):
-    """
-    Checks if the the address tags has changed on the changeset
-
-    :param gid: geometry id
-    :param addr: Actual addr tags
-    :param version: Version to check
-    :param elem: Type of element
-    :return: Boolean
-    """
-
-    url = 'http://api.openstreetmap.org/api/0.6/{0}/{1}/history'.format(elem, gid)
-    r = requests.get(url)
-    if not r.text: return False
-    e = etree.fromstring(r.text.encode('utf-8'))
-    previous_elem = e.find(".//{0}[@version='{1}']".format(elem, (version - 1)))
-    previous_addr = get_address_tags(previous_elem.findall(".//tag[@k]"))
-    if len(addr) != len(previous_addr):
-        return True
-    else:
-        for a in addr:
-            if a not in previous_addr:
-                return True
-    return False
 
 
 def load_changeset(changeset):
@@ -185,45 +137,6 @@ def load_changeset(changeset):
     #changeset['bldg_count'] = len(changeset['wids'])
     changeset['total'] = total_count
     return changeset
-
-
-
-
-
-def geojson_multi_point(coords):
-    """
-    Generates a multipoint geojson from coordinates
-
-    :param coords: Coordinates
-    :return: Geojson as a dict
-    """
-
-    return {
-        "type": "Feature",
-        "properties": {},
-        "geometry": {
-            "type": "MultiPoint",
-            "coordinates": coords
-        }
-    }
-
-
-def geojson_polygon(coords):
-    """
-    Generates a multipoint geojson from coordinates
-
-    :param coords: Coordinates
-    :return: Geojson as a dict
-    """
-
-    return {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": coords
-      }
-    }
 
 
 def extract_coords(gjson):
