@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osmChange version="0.6" generator="CGImap 0.6.0 (31520 thorn-01.openstreetmap.org)" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <modify>
+  <node id="2275295147" visible="true" version="2" changeset="48153728" timestamp="2017-04-26T07:54:51Z" user="gscholz" uid="109705" lat="41.9865175" lon="2.8284105">
+   <tag k="barrier" v="entrance"/>
+  </node>
+ </modify>
+ <modify>
+  <way id="486971942" visible="true" version="2" changeset="48153728" timestamp="2017-04-26T07:54:52Z" user="gscholz" uid="109705">
+   <nd ref="2275295083"/>
+   <nd ref="2275295043"/>
+   <nd ref="2275295014"/>
+   <nd ref="2275294987"/>
+   <nd ref="2275294934"/>
+   <nd ref="800668794"/>
+   <nd ref="781535264"/>
+   <nd ref="781535293"/>
+   <nd ref="781535335"/>
+   <nd ref="781535139"/>
+   <nd ref="781535313"/>
+   <nd ref="2275294888"/>
+   <nd ref="772221272"/>
+   <nd ref="772282310"/>
+   <nd ref="772148718"/>
+   <nd ref="772091788"/>
+   <nd ref="772215700"/>
+   <nd ref="772050942"/>
+   <nd ref="772172548"/>
+   <nd ref="4795037725"/>
+   <nd ref="4795037724"/>
+   <nd ref="4795037723"/>
+   <nd ref="4795037722"/>
+   <nd ref="2275295121"/>
+   <nd ref="4676838978"/>
+   <nd ref="2275295156"/>
+   <nd ref="2275295158"/>
+   <nd ref="4676838980"/>
+   <nd ref="2275295142"/>
+   <nd ref="2275295083"/>
+   <tag k="amenity" v="parking"/>
+  </way>
+ </modify>
+</osmChange>
