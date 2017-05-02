@@ -158,18 +158,6 @@ def extract_coords(gjson):
     return coords
 
 
-def bbox_from_geojson(gjson):
-    """
-    Returns the bbox of a geojson
-
-    :param gjson: geojson as a dict
-    :return: Bbox
-    """
-
-    b = get_bbox(extract_coords(gjson))
-    return geojson_polygon([[[b[0], b[1]], [b[0], b[3]], [b[2], b[3]], [b[2], b[1]], [b[0], b[1]]]])
-
-
 def get_point(node):
     """
     Returns the longitude and latitude from a node
