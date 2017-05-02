@@ -158,48 +158,6 @@ def extract_coords(gjson):
     return coords
 
 
-def bbox_from_geojson(gjson):
-    """
-    Returns the bbox of a geojson
-
-    :param gjson: geojson as a dict
-    :return: Bbox
-    """
-
-    b = get_bbox(extract_coords(gjson))
-    return geojson_polygon([[[b[0], b[1]], [b[0], b[3]], [b[2], b[3]], [b[2], b[1]], [b[0], b[1]]]])
-
-
-def get_polygon(wid):
-    """
-    Get a polygon of a way
-
-    :param wid: Way id
-    :return: Way polygon
-    """
-
-    coords = []
-    query = '''
-        [out:xml][timeout:25];
-        (
-          way(%s);
-        );
-        out body;
-        >;
-        out skel qt;
-    '''
-    r = requests.post('http://overpass-api.de/api/interpreter', data=(query % wid))
-    if not r.text: return coords
-    e = etree.fromstring(r.text.encode('utf-8'))
-    lookup = {}
-    for n in e.findall(".//node"):
-        lookup[n.get('id')] = [float(n.get('lon')), float(n.get('lat'))]
-    for n in e.findall(".//nd"):
-        if n.get('ref') in lookup:
-            coords.append(lookup[n.get('ref')])
-    return coords
-
-
 def get_point(node):
     """
     Returns the longitude and latitude from a node
