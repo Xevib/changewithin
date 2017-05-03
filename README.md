@@ -1,4 +1,5 @@
-[![Coverage Status](https://coveralls.io/repos/github/Xevib/changewithin/badge.svg)](https://coveralls.io/github/Xevib/changewithin)
+[![Coverage Status](https://coveralls.io/repos/github/Xevib/changewithin/badge.svg?branch=master)](https://coveralls.io/github/Xevib/changewithin?branch=master)
+
 # Changewithin
 
 *Daily emails of changes to buildings and addresses on OpenStreetMap.*
