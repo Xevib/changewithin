@@ -274,7 +274,7 @@ class ChangeWithin(object):
             self.conf = config
 
         languages = ['en']
-        if 'language' in self.conf['email']:
+        if 'email' in self.conf["email"] and 'language' in self.conf['email']:
             languages = [self.conf['email']['language']].extend(languages)
         dir_path = os.path.dirname(os.path.realpath(__file__))
         url_locales = os.path.join(dir_path, 'locales')
