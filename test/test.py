@@ -73,7 +73,14 @@ class ChangesWithinTest(unittest.TestCase):
             }
         }
         self.cw.handler.set_bbox('41.9933', '2.8576', '41.9623', '2.7847')
+        self.assertEqual(self.cw.handler.north, 41.9933)
+        self.assertEqual(self.cw.handler.east, 2.8576)
+        self.assertEqual(self.cw.handler.south, 41.9623)
+        self.assertEqual(self.cw.handler.west, 2.7847)
+        self.cw.handler.set_tags("all", ".*", ".*", ["node", "way"])
         self.cw.process_file("test/test1.osc")
+        self.assertTrue("all" in self.cw.handler.tags)
+        self.assertTrue(48153728 in self.cw.changesets)
 
 if __name__ == '__main__':
     unittest.main()
