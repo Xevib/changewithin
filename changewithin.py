@@ -267,13 +267,14 @@ class ChangeWithin(object):
         :config_file: Configuration as a dict
         :return: None
         """
-
-        self.env_vars = config_from_environment('bard', ['config'])
-
-        self.conf = ConfigObj(self.env_vars["config"])
+        if not config:
+            self.env_vars = config_from_environment('bard', ['config'])
+            self.conf = ConfigObj(self.env_vars["config"])
+        else:
+            self.conf = config
 
         languages = ['en']
-        if 'language' in self.conf['email']:
+        if 'email' in self.conf and 'language' in self.conf['email']:
             languages = [self.conf['email']['language']].extend(languages)
         dir_path = os.path.dirname(os.path.realpath(__file__))
         url_locales = os.path.join(dir_path, 'locales')
