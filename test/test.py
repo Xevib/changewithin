@@ -61,7 +61,7 @@ class ChangesWithinTest(unittest.TestCase):
         Tests load of test1.osc
         :return: None
         """
-        self.cw.conf = {
+        conf = {
             'area': {
                 'bbox': ['41.9933', '2.8576', '41.9623', '2.7847']
             },
@@ -72,6 +72,8 @@ class ChangesWithinTest(unittest.TestCase):
                 }
             }
         }
+        self.cw.conf = conf
+        self.cw.load_config(conf)
         self.cw.handler.set_bbox('41.9933', '2.8576', '41.9623', '2.7847')
         self.assertEqual(self.cw.handler.north, 41.9933)
         self.assertEqual(self.cw.handler.east, 2.8576)
