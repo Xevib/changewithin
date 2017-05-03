@@ -267,10 +267,11 @@ class ChangeWithin(object):
         :config_file: Configuration as a dict
         :return: None
         """
-
-        self.env_vars = config_from_environment('bard', ['config'])
-
-        self.conf = ConfigObj(self.env_vars["config"])
+        if not config:
+            self.env_vars = config_from_environment('bard', ['config'])
+            self.conf = ConfigObj(self.env_vars["config"])
+        else:
+            self.conf = config
 
         languages = ['en']
         if 'language' in self.conf['email']:
