@@ -72,6 +72,7 @@ class ChangesWithinTest(unittest.TestCase):
                 }
             }
         }
+        self.cw.handler.set_bbox('41.9933', '2.8576', '41.9623', '2.7847')
         self.cw.process_file("test/test1.osc")
 
 if __name__ == '__main__':
