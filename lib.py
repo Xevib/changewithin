@@ -1,18 +1,11 @@
 """ Support functions for changewithin.py script.
 """
-import time
 import json
 import requests
 import os
 import sys
-import re
 import urllib
 from lxml import etree
-import osmapi
-
-from ModestMaps.Geo import MercatorProjection
-from ModestMaps.Geo import Location
-from ModestMaps.Core import Coordinate
 from tempfile import mkstemp
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
