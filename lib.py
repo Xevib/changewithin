@@ -107,25 +107,6 @@ def load_changeset(changeset):
     return changeset
 
 
-def extract_coords(gjson):
-    """
-    Extract the coordinates from a geojson
-    :param gjson: geojson as a dict
-    :return: Coordinates
-    """
-
-    coords = []
-    for f in gjson['features']:
-        if f['geometry']['type'] == 'Polygon':
-            for c in f['geometry']['coordinates']:
-                coords.extend(c)
-        elif f['geometry']['type'] == 'MultiPoint':
-            coords.extend(f['geometry']['coordinates'])
-        elif f['type'] == 'Point':
-            coords.append(f['geometry']['coordinates'])
-    return coords
-
-
 def get_point(node):
     """
     Returns the longitude and latitude from a node
