@@ -31,7 +31,7 @@ def get_state():
 
 def get_osc(stateurl=None):
     """
-    Function to downloat the osc file
+    Function to download the osc file
 
     :param stateurl: str with the url of the osc
     :return: None
@@ -84,16 +84,6 @@ def has_tag(element, key, value=None):
         else:
             if re.match(re_key, e.attrib['k']):
                 return True
-
-def has_building_tag(n):
-    """
-    Checks if a change has a building tag
-
-    :param n: lxml element
-    :return: Boolean
-    """
-
-    return n.find(".//tag[@k='building']") is not None
 
 
 def load_changeset(changeset):

@@ -4,6 +4,14 @@ from changewithin import ChangeHandler
 from osmium.osm import Location
 
 
+class LibTest(unittest.TestCase):
+    """
+    Lib file test
+    """
+    def test_has_tag(self):
+
+
+
 class HandlerTest(unittest.TestCase):
     """
     Unittest for the handler
