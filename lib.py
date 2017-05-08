@@ -63,28 +63,6 @@ def get_osc(stateurl=None):
     # knock off the ".gz" suffix and return
     return filename[:-3]
 
-def has_tag(element, key, value=None):
-    """
-    Checks if a Element has a tag
-
-    :param element: Lxml Eelment
-    :param key: Key value
-    :param value: Value
-    :return: Boolean
-    """
-
-    re_key = re.compile(key)
-    if value:
-        re_value = re.compile(value)
-    tag_elements = element.findall(".//tag")
-    for e in tag_elements:
-        if value:
-            if re.match(re_key, e.attrib['k']) and re.match(re_value, e.attrib['v']):
-                return True
-        else:
-            if re.match(re_key, e.attrib['k']):
-                return True
-
 
 def load_changeset(changeset):
     """
