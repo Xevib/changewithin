@@ -106,13 +106,3 @@ def load_changeset(changeset):
     changeset['total'] = total_count
     return changeset
 
-
-def get_point(node):
-    """
-    Returns the longitude and latitude from a node
-
-    :param node:
-    :return: [lon,lat]
-    """
-
-    return [node["lon"], node["lat"]]
