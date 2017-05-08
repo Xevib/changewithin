@@ -1,18 +1,11 @@
 """ Support functions for changewithin.py script.
 """
-import time
 import json
 import requests
 import os
 import sys
-import re
 import urllib
 from lxml import etree
-import osmapi
-
-from ModestMaps.Geo import MercatorProjection
-from ModestMaps.Geo import Location
-from ModestMaps.Core import Coordinate
 from tempfile import mkstemp
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +24,7 @@ def get_state():
 
 def get_osc(stateurl=None):
     """
-    Function to downloat the osc file
+    Function to download the osc file
 
     :param stateurl: str with the url of the osc
     :return: None
@@ -62,108 +55,3 @@ def get_osc(stateurl=None):
 
     # knock off the ".gz" suffix and return
     return filename[:-3]
-
-def has_tag(element, key, value=None):
-    """
-    Checks if a Element has a tag
-
-    :param element: Lxml Eelment
-    :param key: Key value
-    :param value: Value
-    :return: Boolean
-    """
-
-    re_key = re.compile(key)
-    if value:
-        re_value = re.compile(value)
-    tag_elements = element.findall(".//tag")
-    for e in tag_elements:
-        if value:
-            if re.match(re_key, e.attrib['k']) and re.match(re_value, e.attrib['v']):
-                return True
-        else:
-            if re.match(re_key, e.attrib['k']):
-                return True
-
-def has_building_tag(n):
-    """
-    Checks if a change has a building tag
-
-    :param n: lxml element
-    :return: Boolean
-    """
-
-    return n.find(".//tag[@k='building']") is not None
-
-
-def load_changeset(changeset):
-    """
-    Loads data from a changeset
-
-    :param changeset: Changeset id
-    :return: Changeset
-    """
-
-    changeset['wids'] = list(changeset['wids'])
-    changeset['nids'] = changeset['nodes'].keys()
-    total_count = 0
-    for key in changeset.keys():
-        if key[-3:] == '_nd':
-            name = key[:-3]
-            changeset[name + '_nids'] = changeset[key].keys()
-            changeset[name + '_way'] = list(changeset[name + '_way'])
-            changeset[name + '_count'] = len(changeset[name + '_way']) + len(changeset[name + '_nids'])
-            total_count += changeset[name + '_count']
-    #changeset['addr_chg_nids'] = changeset['addr_chg_nd'].keys()
-    #changeset['addr_chg_way'] = list(changeset['addr_chg_way'])
-    points = map(get_point, changeset['nodes'].values())
-    polygons = map(get_polygon, changeset['wids'])
-    gjson = geojson_feature_collection(points=points, polygons=polygons)
-    extent = get_extent(gjson)
-    url = 'http://api.openstreetmap.org/api/0.6/changeset/{0}'.format(changeset['id'])
-    r = requests.get(url)
-    if not r.text: return changeset
-    t = etree.fromstring(r.text.encode('utf-8'))
-    changeset['details'] = dict(t.find('.//changeset').attrib)
-    comment = t.find(".//tag[@k='comment']")
-    created_by = t.find(".//tag[@k='created_by']")
-    if comment is not None: changeset['comment'] = comment.get('v')
-    if created_by is not None: changeset['created_by'] = created_by.get('v')
-    changeset['map_img'] = 'http://api.tiles.mapbox.com/v3/lxbarth.map-lxoorpwz/geojson({0})/{1},{2},{3}/600x400.png'.format(urllib.quote(json.dumps(gjson)), extent['lon'], extent['lat'], extent['zoom'])
-    if len(changeset['map_img']) > 2048:
-        changeset['map_img'] = 'http://api.tiles.mapbox.com/v3/lxbarth.map-lxoorpwz/geojson({0})/{1},{2},{3}/600x400.png'.format(urllib.quote(json.dumps(bbox_from_geojson(gjson))), extent['lon'], extent['lat'], extent['zoom'])
-    changeset['map_link'] = 'http://www.openstreetmap.org/?lat={0}&lon={1}&zoom={2}&layers=M'.format(extent['lat'], extent['lon'], extent['zoom'])
-    #changeset['addr_count'] = len(changeset['addr_chg_way']) + len(changeset['addr_chg_nids'])
-    #changeset['bldg_count'] = len(changeset['wids'])
-    changeset['total'] = total_count
-    return changeset
-
-
-def extract_coords(gjson):
-    """
-    Extract the coordinates from a geojson
-    :param gjson: geojson as a dict
-    :return: Coordinates
-    """
-
-    coords = []
-    for f in gjson['features']:
-        if f['geometry']['type'] == 'Polygon':
-            for c in f['geometry']['coordinates']:
-                coords.extend(c)
-        elif f['geometry']['type'] == 'MultiPoint':
-            coords.extend(f['geometry']['coordinates'])
-        elif f['type'] == 'Point':
-            coords.append(f['geometry']['coordinates'])
-    return coords
-
-
-def get_point(node):
-    """
-    Returns the longitude and latitude from a node
-
-    :param node:
-    :return: [lon,lat]
-    """
-
-    return [node["lon"], node["lat"]]

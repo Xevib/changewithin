@@ -2,6 +2,19 @@ import unittest
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
 from osmium.osm import Location
+from lib import get_state
+
+
+class LibTest(unittest.TestCase):
+
+    def test_get_state(self):
+        """
+        Tests get_state 
+        :return: None
+        """
+
+        state = get_state()
+        self.assertNotEquals(state, "")
 
 
 class HandlerTest(unittest.TestCase):

@@ -342,8 +342,7 @@ class ChangeWithin(object):
         html_version = self.html_tmpl.render(**template_data)
         text_version = self.text_tmpl.render(**template_data)
 
-        if 'domain' in self.conf['mailgun'] and 'api_key' in self.conf[
-            'mailgun']:
+        if 'domain' in self.conf['mailgun'] and 'api_key' in self.conf['mailgun']:
             if "api_url" in self.conf["mailgun"]:
                 url = self.conf["mailgun"]["api_url"]
             else:
