@@ -31,6 +31,8 @@ Install Python packages:
 
     python changewithin.py
 
+The program reads the url of the configuration file from the environment variable BARD_CONFIG.
+
 ## Automating
 
 Assuming the above installation, edit your [cron table](https://en.wikipedia.org/wiki/Cron) (`crontab -e`) to run the script once a day at 7:00am.
