@@ -6,6 +6,9 @@ from lib import get_state
 
 
 class LibTest(unittest.TestCase):
+    """
+    Unitest for the lif module
+    """
 
     def test_get_state(self):
         """
@@ -21,6 +24,7 @@ class HandlerTest(unittest.TestCase):
     """
     Unittest for the handler
     """
+    
     def setUp(self):
         """
         Initialization
