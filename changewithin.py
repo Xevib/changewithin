@@ -127,6 +127,7 @@ class ChangeHandler(osmium.SimpleHandler):
         self.tags[name]["key_re"] = re.compile(key)
         self.tags[name]["value_re"] = re.compile(value)
         self.tags[name]["types"] = element_types
+        self.stats[name] = []
 
     def set_bbox(self, north, east, south, west):
         """
