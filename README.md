@@ -20,50 +20,49 @@ and address changes that link to their history, and a map thumbnail that is cent
 on the location where the edits were made.
 
 
-## Installation
+# Installation
 
 Install Python packages:
     
     pip install -r requirements.txt
 
 
-## Running
+# Running
 
     python changewithin.py
 
 The program reads the url of the configuration file from the environment variable BARD_CONFIG.
 
-## Configuration
+# Configuration
 
 To setup the confiugration the file must be in [Confobj file format](http://configobj.readthedocs.io/en/latest/configobj.html#the-config-file-format)
 
 The configuration have the following secctions:
 
-### Email
+## Email
     * recipients: list of emails to send the report
     * language: specifies the language of the email
     
     
-### Area
+## Area
 
     * bbox: Bounding box of the area to check the changes North,East,South,West
 
-### Mailgun
+## Mailgun
     
     * domain: Mailgun domain
     * api_key: Mailgun api key
     * api_url: Mailgun api URL , ended with /messages
     
-### Tags
+## Tags
     Represents the tags to check, each tag is a section with a name.
     Each tag must have:
     
     * tags: regular expresion key,value to indicate the key and value to check
     * type: types of elements to check separated by coma. Avaible types node and way
     
-## Automating
+# Automating
 
 Assuming the above installation, edit your [cron table](https://en.wikipedia.org/wiki/Cron) (`crontab -e`) to run the script once a day at 7:00am.
 
     0 7 * * * ~/path/to/changewithin/bin/python ~/path/to/changewithin/changewithin.py
-
