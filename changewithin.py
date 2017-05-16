@@ -292,7 +292,7 @@ class ChangeWithin(object):
 
         self.handler.set_bbox(*self.conf["area"]["bbox"])
         for name in self.conf["tags"]:
-            value, key = self.conf["tags"][name]["tags"].split("=")
+            key, value = self.conf["tags"][name]["tags"].split("=")
             types = self.conf["tags"][name]["tags"].split(",")
             self.stats["name"] = 0
             self.handler.set_tags(name, key, value, types)
