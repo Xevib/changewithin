@@ -5,7 +5,7 @@
 *Daily emails of changes to buildings and addresses on OpenStreetMap.*
 
 changewithin is a simple script that pulls [daily changes](http://planet.openstreetmap.org/)
-from OpenStreetMap with `requests`, parses them with `lxml`, finds the ones that are inside
+from OpenStreetMap with `requests`, parses them with `pyosmium`, finds the ones that are inside
 of a GeoJSON shape, sorts out the ones that are buildings, and emails a set of users
 with [mailgun](http://www.mailgun.com/).
 
