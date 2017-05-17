@@ -127,7 +127,7 @@ class ChangeHandler(osmium.SimpleHandler):
         self.tags[name]["key_re"] = re.compile(key)
         self.tags[name]["value_re"] = re.compile(value)
         self.tags[name]["types"] = element_types
-        self.stats[name] = []
+        self.stats[name] = set()
 
     def set_bbox(self, north, east, south, west):
         """
@@ -166,7 +166,7 @@ class ChangeHandler(osmium.SimpleHandler):
                             node.id, node.tags, key_re, node.version, "node")
                     if add_node:
                         if tag_name in self.stats:
-                            self.stats[tag_name].append(node.changeset)
+                            self.stats[tag_name].add(node.changeset)
                         else:
                             self.stats[tag_name] = [node.changeset]
                         if node.changeset not in self.changeset:
