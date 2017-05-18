@@ -137,7 +137,7 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertTrue("all" in self.cw.handler.tags)
         self.assertEqual(len(set(self.cw.stats["all"])), len(self.cw.stats["all"]))
         self.assertEqual(len(set(self.cw.stats["building"])), len(self.cw.stats["building"]))
-        self.assertTrue(48153728 in self.cw.changesets)
+        self.assertTrue(48595327 in self.cw.changesets)
 
 if __name__ == '__main__':
     unittest.main()
