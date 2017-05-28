@@ -93,7 +93,11 @@ class ChangeHandler(osmium.SimpleHandler):
                 if re.match(watch_tags, key):
                     out_tags[key] = value
             previous_tags = out_tags
-
+            out_tags = {}
+            for key, value in old_tags["tag"].items():
+                if re.match(watch_tags, key):
+                    out_tags[key] = value
+            old_tags = out_tags
             return previous_tags != old_tags
         else:
             return False

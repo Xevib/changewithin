@@ -65,8 +65,11 @@ class HandlerTest(unittest.TestCase):
     def test_has_changed(self):
         osm_api = osmapi.OsmApi()
         old_tags = osm_api.WayGet(360662139, 1)
-        ret = self.handler.has_tag_changed(360662139, old_tags, ["surface"], 2)
+        ret = self.handler.has_tag_changed(360662139, old_tags, "surface", 3, "way")
         self.assertTrue(ret)
+        old_tags = osm_api.WayGet(360662139, 2)
+        ret = self.handler.has_tag_changed(360662139, old_tags, "surface", 3, "way")
+        self.assertFalse(ret)
 
 class ChangesWithinTest(unittest.TestCase):
     """
