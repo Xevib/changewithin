@@ -17,7 +17,7 @@ class LibTest(unittest.TestCase):
         """
 
         state = get_state()
-        self.assertNotEquals(state, "")
+        self.assertNotEqual(state, "")
 
 
 class HandlerTest(unittest.TestCase):
