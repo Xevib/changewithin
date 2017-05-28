@@ -3,7 +3,7 @@ from changewithin import ChangeWithin
 from changewithin import ChangeHandler
 from osmium.osm import Location
 from lib import get_state
-
+import osmapi
 
 class LibTest(unittest.TestCase):
     """
@@ -62,6 +62,14 @@ class HandlerTest(unittest.TestCase):
         self.assertEqual(self.handler.south, 41.9623)
         self.assertEqual(self.handler.west, 2.7847)
 
+    def test_has_changed(self):
+        osm_api = osmapi.OsmApi()
+        old_tags = osm_api.WayGet(360662139, 1)["tag"]
+        ret = self.handler.has_tag_changed(360662139, old_tags, "surface", 3, "way")
+        self.assertTrue(ret)
+        old_tags = osm_api.WayGet(360662139, 2)["tag"]
+        ret = self.handler.has_tag_changed(360662139, old_tags, "surface", 3, "way")
+        self.assertFalse(ret)
 
 class ChangesWithinTest(unittest.TestCase):
     """
@@ -99,7 +107,7 @@ class ChangesWithinTest(unittest.TestCase):
         self.cw.handler.set_tags("all", ".*", ".*", ["node", "way"])
         self.cw.process_file("test/test1.osc")
         self.assertTrue("all" in self.cw.handler.tags)
-        self.assertTrue(48153728 in self.cw.changesets)
+        self.assertTrue(49033608 in self.cw.changesets)
 
     def test_osc1_multiple(self):
         """

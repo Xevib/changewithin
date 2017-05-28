@@ -93,10 +93,24 @@ class ChangeHandler(osmium.SimpleHandler):
                 if re.match(watch_tags, key):
                     out_tags[key] = value
             previous_tags = out_tags
-
+            out_tags = {}
+            for key, value in old_tags.items():
+                if re.match(watch_tags, key):
+                    out_tags[key] = value
+            old_tags = out_tags
             return previous_tags != old_tags
         else:
             return False
+
+    def convert_osmium_tags_dict(self, tags):
+        """
+        Converts the tags of osmium to dict
+        :return: Dict
+        """
+        ret = {}
+        for tag in tags:
+            ret[tag.k] = tag.v
+        return ret
 
     def has_tag(self, element, key_re, value_re):
         """
@@ -163,7 +177,7 @@ class ChangeHandler(osmium.SimpleHandler):
                         add_node = True
                     else:
                         add_node = self.has_tag_changed(
-                            node.id, node.tags, key_re, node.version, "node")
+                            node.id, self.convert_osmium_tags_dict(node.tags), key_re, node.version, "node")
                     if add_node:
                         if tag_name in self.stats:
                             self.stats[tag_name].add(node.changeset)
@@ -202,10 +216,10 @@ class ChangeHandler(osmium.SimpleHandler):
                         add_way = True
                     else:
                         add_way = self.has_tag_changed(
-                            way.id, way.tags, key_re, way.version, "way")
+                            way.id, self.convert_osmium_tags_dict(way.tags), key_re, way.version, "way")
                     if add_way:
                         if tag_name in self.stats:
-                            self.stats[tag_name].append(way.changeset)
+                            self.stats[tag_name].add(way.changeset)
                         else:
                             self.stats[tag_name] = [way.changeset]
                         if way.changeset in self.changeset:
