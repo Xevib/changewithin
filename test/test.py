@@ -105,7 +105,7 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertEqual(self.cw.handler.south, 41.9623)
         self.assertEqual(self.cw.handler.west, 2.7847)
         self.cw.handler.set_tags("all", ".*", ".*", ["node", "way"])
-        self.cw.process_file("test1.osc")
+        self.cw.process_file("test/test1.osc")
         self.assertTrue("all" in self.cw.handler.tags)
         self.assertTrue(49033608 in self.cw.changesets)
 
