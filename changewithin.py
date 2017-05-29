@@ -188,7 +188,7 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "changeset": node.changeset,
                                 "user": node.user,
                                 "uid": node.uid,
-                                "nids": [],
+                                "nids": [node.id],
                                 "wids": []
                             }
                         else:
