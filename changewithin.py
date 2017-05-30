@@ -188,13 +188,14 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "changeset": node.changeset,
                                 "user": node.user,
                                 "uid": node.uid,
-                                "nids": [node.id],
-                                "wids": []
+                                "nids": {tag_name: [node.id]},
+                                "wids": {}
                             }
                         else:
-                            self.changeset[node.changeset]["nids"].append(
+                            if tag_name not in self.changeset[node.changeset]["nids"]:
+                                self.changeset[node.changeset]["nids"][tag_name] = []
+                            self.changeset[node.changeset]["nids"][tag_name].append(
                                 node.id)
-                    print("node:changeset a dins:{}".format(node.changeset))
         self.num_nodes += 1
 
     def way(self, way):
@@ -223,16 +224,17 @@ class ChangeHandler(osmium.SimpleHandler):
                         else:
                             self.stats[tag_name] = [way.changeset]
                         if way.changeset in self.changeset:
-                            self.changeset[way.changeset]["wids"].append(way.id)
+                            if tag_name not in self.changeset[way.changeset]["wids"]:
+                                self.changeset[way.changeset]["wids"][tag_name] = []
+                            self.changeset[way.changeset]["wids"][tag_name].append(way.id)
                         else:
                             self.changeset[way.changeset] = {
                                 "changeset": way.changeset,
                                 "user": way.user,
                                 "uid": way.uid,
-                                "nids": [],
-                                "wids": [way.id]
+                                "nids": {},
+                                "wids": {tag_name: [way.id]}
                             }
-                    print("way:changeset a dins:{}".format(way.changeset))
         self.num_ways += 1
 
     def relation(self, r):
