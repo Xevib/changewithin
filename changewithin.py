@@ -9,7 +9,7 @@ from jinja2 import Environment
 from osconf import config_from_environment
 import osmapi
 from lib import get_osc
-
+from raven import Client
 
 # Env vars:
 # AREA_GEOJSON
@@ -388,7 +388,11 @@ class ChangeWithin(object):
 
 
 if __name__ == '__main__':
-    c = ChangeWithin()
-    c.load_config()
-    c.process_file()
-    c.report()
+    client = Client()
+    try:
+        c = ChangeWithin()
+        c.load_config()
+        c.process_file()
+        c.report()
+    except Exception:
+        client.captureException()
