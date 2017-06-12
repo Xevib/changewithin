@@ -22,7 +22,7 @@
                 {{_('Nodes changed')}}: {% for node in changesets[changeset]['nids'][watch_tag]%}<a href="http://www.openstreetmap.org/node/{{node}}">{{node}}</a> {% endfor %}
             </p>
             <p style='font-size:14px;line-height:17px;margin-top:5px;margin-bottom:20px;'>
-                {{_('Ways changed')}} :  {% for way in changesets[changeset]['wids'] %}<a href="http://www.openstreetmap.org/way/{{way}}">{{way}}</a> {% endfor %}
+                {{_('Ways changed')}} :  {% for way in changesets[changeset]['wids'][watch_tag] %}<a href="http://www.openstreetmap.org/way/{{way}}">{{way}}</a> {% endfor %}
             </p>
         {% endfor %}
     {% endfor%}
