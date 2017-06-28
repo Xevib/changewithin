@@ -7,3 +7,4 @@ configobj
 osmapi
 osconf
 raven
+click
