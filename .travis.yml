@@ -14,5 +14,5 @@ install:
  - pip install osmium
 script:
  - PYTHONPATH="." pip install ./changewithin
- - PYTHONPATH=$PYTHONPATH:"./changewithin" coverage run --include=lib.py,changewithin.py test/test.py && coverage report
+ - PYTHONPATH="." coverage run --include=lib.py,changewithin.py test/test.py && coverage report
  - coveralls
