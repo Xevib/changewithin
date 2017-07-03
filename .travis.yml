@@ -13,6 +13,6 @@ install:
  - pip install coveralls
  - pip install osmium
 script:
- - PYTHONPATH="." pip install .
+ - PYTHONPATH="." pip install ./changewithin
  - PYTHONPATH=$PYTHONPATH:"./changewithin" coverage run --include=lib.py,changewithin.py test/test.py && coverage report
  - coveralls
