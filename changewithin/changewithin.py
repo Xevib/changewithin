@@ -295,6 +295,7 @@ class ChangeWithin(object):
             languages = [self.conf['email']['language']].extend(languages)
         dir_path = os.path.dirname(os.path.realpath(__file__))
         url_locales = os.path.join(dir_path, 'locales')
+        print "url_locales:{}".format(url_locales)
         lang = gettext.translation(
             'messages',
             localedir=url_locales,
