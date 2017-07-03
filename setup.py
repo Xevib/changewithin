@@ -4,7 +4,7 @@ with open('requirements.txt') as f:
 requirements = data.split()
 
 setup(
-    name='changeswithin',
+    name='changewithin',
     version='0.1.0',
     packages=find_packages(),
     url='https://github.com/Xevib/changeswihtin',
@@ -15,6 +15,6 @@ setup(
     install_requires=requirements,
     entry_points='''
         [console_scripts]
-        changeswithin=changeswithin.cli:cli_generate_report
+        changewithin=changewithin.cli:cli_generate_report
     ''',
 )

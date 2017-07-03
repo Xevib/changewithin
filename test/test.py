@@ -1,9 +1,11 @@
+from __future__ import absolute_import
 import unittest
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
 from osmium.osm import Location
 from lib import get_state
 import osmapi
+
 
 class LibTest(unittest.TestCase):
     """
