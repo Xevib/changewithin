@@ -97,7 +97,7 @@ class ChangesWithinTest(unittest.TestCase):
                     'type': 'node,way'
                 }
             },
-            "url_locales": "./locales"
+            "url_locales": "./changewithin/locales"
         }
         self.cw.conf = conf
         self.cw.load_config(conf)
@@ -134,7 +134,7 @@ class ChangesWithinTest(unittest.TestCase):
                     "type": "way,node"
                 }
             },
-            "url_locales": "./locales"
+            "url_locales": "./changwithi/locales"
         }
         self.cw.conf = conf
         self.cw.load_config(conf)
