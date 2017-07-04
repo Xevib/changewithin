@@ -12,7 +12,9 @@ install:
  - pip install -r requirements-dev.txt
  - pip install coveralls
  - pip install osmium
+before_script:
+- cd changewithin
 script:
- - PYTHONPATH="." pip install ./changewithin
+ - PYTHONPATH="." pip install .
  - PYTHONPATH="." coverage run --include=lib.py,changewithin.py test/test.py && coverage report
  - coveralls

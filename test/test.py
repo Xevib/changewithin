@@ -97,7 +97,7 @@ class ChangesWithinTest(unittest.TestCase):
                     'type': 'node,way'
                 }
             },
-            "url_locales": "changewithin/locales"
+            "url_locales": "locales"
         }
         self.cw.conf = conf
         self.cw.load_config(conf)
@@ -107,7 +107,7 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertEqual(self.cw.handler.south, 41.9623)
         self.assertEqual(self.cw.handler.west, 2.7847)
         self.cw.handler.set_tags("all", ".*", ".*", ["node", "way"])
-        self.cw.process_file("changewithin/test/test1.osc")
+        self.cw.process_file("test/test1.osc")
         self.assertTrue("all" in self.cw.handler.tags)
         self.assertTrue(49033608 in self.cw.changesets)
 
@@ -134,7 +134,7 @@ class ChangesWithinTest(unittest.TestCase):
                     "type": "way,node"
                 }
             },
-            "url_locales": "./changwithi/locales"
+            "url_locales": "locales"
         }
         self.cw.conf = conf
         self.cw.load_config(conf)
@@ -144,7 +144,7 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertEqual(self.cw.handler.south, 41.9623)
         self.assertEqual(self.cw.handler.west, 2.7847)
         self.cw.handler.set_tags("all", ".*", ".*", ["node", "way"])
-        self.cw.process_file("changewithin/test/test2.osc")
+        self.cw.process_file("test/test2.osc")
         self.assertTrue("all" in self.cw.handler.tags)
         self.assertEqual(len(set(self.cw.stats["all"])), len(self.cw.stats["all"]))
         self.assertEqual(len(set(self.cw.stats["building"])), len(self.cw.stats["building"]))
