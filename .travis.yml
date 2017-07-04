@@ -15,6 +15,8 @@ install:
 before_script:
 - cd changewithin
 script:
+ - pwd
+ - ls
  - PYTHONPATH="." pip install .
  - PYTHONPATH="." coverage run --include=lib.py,changewithin.py test/test.py && coverage report
  - coveralls
