@@ -1,4 +1,4 @@
-dist: precise
+dist: trusty
 language: python
 python:
   - "2.7"
@@ -16,6 +16,5 @@ script:
  - pwd
  - ls
  - ls locales
- - pip install -e .
- - PYTHONPATH="." coverage run --include=lib.py,changewithin.py test/test.py && coverage report
+ - coverage run --include=lib.py,changewithin.py test/test.py && coverage report
  - coveralls
