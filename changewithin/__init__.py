@@ -1,3 +1,4 @@
-from .changewithin import ChangeWithin
-from .changewithin import ChangeHandler
-from lib import get_state
+from __future__ import absolute_import
+from changewithin.changewithin import ChangeWithin
+from changewithin.changewithin import ChangeHandler
+from changewithin.lib import get_state
