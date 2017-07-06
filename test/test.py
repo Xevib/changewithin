@@ -2,8 +2,9 @@ import unittest
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
 from osmium.osm import Location
-from lib import get_state
+from changewithin import get_state
 import osmapi
+
 
 class LibTest(unittest.TestCase):
     """
@@ -95,7 +96,8 @@ class ChangesWithinTest(unittest.TestCase):
                     'tags': '.*=.*',
                     'type': 'node,way'
                 }
-            }
+            },
+            "url_locales": "locales"
         }
         self.cw.conf = conf
         self.cw.load_config(conf)
@@ -131,7 +133,8 @@ class ChangesWithinTest(unittest.TestCase):
                     "tags": "building=public",
                     "type": "way,node"
                 }
-            }
+            },
+            "url_locales": "locales"
         }
         self.cw.conf = conf
         self.cw.load_config(conf)

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import re
 
@@ -8,7 +9,7 @@ import gettext
 from jinja2 import Environment
 from osconf import config_from_environment
 import osmapi
-from lib import get_osc
+from changewithin.lib import get_osc
 from raven import Client
 
 # Env vars:
@@ -293,8 +294,11 @@ class ChangeWithin(object):
         languages = ['en']
         if 'email' in self.conf and 'language' in self.conf['email']:
             languages = [self.conf['email']['language']].extend(languages)
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        url_locales = os.path.join(dir_path, 'locales')
+        if "url_locales" not in self.conf:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            url_locales = os.path.join(dir_path, 'locales')
+        else:
+            url_locales = self.conf["url_locales"]
         lang = gettext.translation(
             'messages',
             localedir=url_locales,
