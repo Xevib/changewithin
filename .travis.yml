@@ -7,7 +7,8 @@ python:
 before_install:
  - sudo apt-get update -q
 install:
- - sudo apt-get install python-lxml gcc cmake libgeos++-dev libgdal-dev libsparsehash-dev libboost-dev libbz2-dev zlib1g-dev libexpat1-dev libutfcpp-dev libosmpbf-dev libprotobuf-dev protobuf-compiler cmake-curses-gui make libboost-python-dev
+ - sudo apt-get install gettext python-lxml gcc cmake libgeos++-dev libgdal-dev libsparsehash-dev libboost-dev libbz2-dev zlib1g-dev libexpat1-dev libutfcpp-dev libosmpbf-dev libprotobuf-dev protobuf-compiler cmake-curses-gui make libboost-python-dev
+ - locale
  - pip install -r requirements.txt
  - pip install -r requirements-dev.txt
  - pip install coveralls
