@@ -67,6 +67,56 @@ class ChangeHandler(osmium.SimpleHandler):
             x += 1
         return inside
 
+    def node_in_bbox(self, node_id):
+        """
+        Check if a node id is in the bounding box
+
+        :param node_id: Node id
+        :return: True if the node is in the bounding box
+        :rtype: bool
+        """
+
+        osm_api = osmapi.OsmApi()
+        node = osm_api.NodeGet(node_id)
+        return self.north > node["lat"] > self.south and self.east > node["lon"] > self.west
+
+    def way_id_in_bbox(self, way_id):
+        """
+        Checks if an id of a way is in the bounding box
+
+        :param way_id: id of the way
+        :return:
+        """
+        osm_api = osmapi.OsmApi()
+        way = osm_api.WayGet(way_id)
+        ret = False
+        index = 0
+        while not ret and index < len(way["nd"]):
+            ret = self.node_in_bbox(way["nd"][index])
+            index += 1
+        return ret
+
+    def rel_in_bbox(self, members):
+        """
+        Checks if the relation is in the bounding box
+
+        :param members: List of members of the relation
+        :return: True if the relation is in the bounding box
+        :rtype: bool
+        """
+        for member in members:
+            if member.type == "n":
+                ret = self.node_in_bbox(member.ref)
+                print "node ref:{} ret:{}".format(member.ref, ret)
+                if ret:
+                    return True
+            elif member.type == "w":
+                ret = self.way_id_in_bbox(member.ref)
+                print "way ref:{} ret:{}".format(member.ref, ret)
+                if ret:
+                    return True
+        return False
+
     def has_tag_changed(self, gid, old_tags, watch_tags, version, elem):
         """
         Checks if tags has changed on the changeset
@@ -238,10 +288,17 @@ class ChangeHandler(osmium.SimpleHandler):
                             }
         self.num_ways += 1
 
-    def relation(self, r):
+    def relation(self, rel):
         # print 'rel:{}'.format(self.num_rel)
         # for member in r.members:
         #    print member
+        if self.rel_in_bbox(rel.members):
+            for tag_name in self.tags.keys():
+                key_re = self.tags[tag_name]["key_re"]
+                value_re = self.tags[tag_name]["value_re"]
+                if self.has_tag(rel.tags, key_re, value_re):
+                    print "te tags"
+
         self.num_rel += 1
 
 
