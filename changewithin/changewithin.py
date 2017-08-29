@@ -297,8 +297,30 @@ class ChangeHandler(osmium.SimpleHandler):
                 key_re = self.tags[tag_name]["key_re"]
                 value_re = self.tags[tag_name]["value_re"]
                 if self.has_tag(rel.tags, key_re, value_re):
-                    print "te tags"
-
+                    if rel.deleted:
+                        add_rel = True
+                    elif rel.version == 1:
+                        add_rel = True
+                    else:
+                        add_rel = self.has_tag_changed(rel.id,rel.tags,key_re,rel.version, "rel")
+                    if add_rel:
+                        if tag_name in self.stats:
+                            self.stats[tag_name].add(rel.changeset)
+                        else:
+                            self.stats[tag_name] = [rel.changeset]
+                        if rel.changeset in self.changeset:
+                            if tag_name not in self.changeset[rel.changeset]["rids"]:
+                                self.changeset[rel.changeset]["rids"][tag_name] = []
+                            self.changeset[rel.changeset]["rids"][
+                                tag_name].append(rel.id)
+                        else:
+                            self.changeset[rel.changeset] = {
+                                "changeset": rel.changeset,
+                                "user": rel.user,
+                                "uid": rel.uid,
+                                "nids": {},
+                                "wids": {tag_name: [rel.id]}
+                            }
         self.num_rel += 1
 
 
