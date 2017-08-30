@@ -107,12 +107,10 @@ class ChangeHandler(osmium.SimpleHandler):
         for member in members:
             if member.type == "n":
                 ret = self.node_in_bbox(member.ref)
-                print "node ref:{} ret:{}".format(member.ref, ret)
                 if ret:
                     return True
             elif member.type == "w":
                 ret = self.way_id_in_bbox(member.ref)
-                print "way ref:{} ret:{}".format(member.ref, ret)
                 if ret:
                     return True
         return False
