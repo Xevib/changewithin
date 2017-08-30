@@ -17,4 +17,10 @@ setup(
         [console_scripts]
         changewithin=changewithin.cli:cli_generate_report
     ''',
+    package_data={
+        'changewithin': [
+            "changewithin/templates/text_template.txt",
+            "changewithin/templates/html_template.html"
+        ]
+    }
 )
