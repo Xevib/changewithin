@@ -240,7 +240,8 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "user": node.user,
                                 "uid": node.uid,
                                 "nids": {tag_name: [node.id]},
-                                "wids": {}
+                                "wids": {},
+                                "rids": {}
                             }
                         else:
                             if tag_name not in self.changeset[node.changeset]["nids"]:
@@ -284,7 +285,8 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "user": way.user,
                                 "uid": way.uid,
                                 "nids": {},
-                                "wids": {tag_name: [way.id]}
+                                "wids": {tag_name: [way.id]},
+                                "rids": {}
                             }
         self.num_ways += 1
 
@@ -302,7 +304,8 @@ class ChangeHandler(osmium.SimpleHandler):
                     elif rel.version == 1:
                         add_rel = True
                     else:
-                        add_rel = self.has_tag_changed(rel.id,rel.tags,key_re,rel.version, "rel")
+                        rel_tags = self.convert_osmium_tags_dict(rel.tags)
+                        add_rel = self.has_tag_changed(rel.id, rel_tags, key_re, rel.version, "relation")
                     if add_rel:
                         if tag_name in self.stats:
                             self.stats[tag_name].add(rel.changeset)
@@ -319,7 +322,8 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "user": rel.user,
                                 "uid": rel.uid,
                                 "nids": {},
-                                "wids": {tag_name: [rel.id]}
+                                "wids": {},
+                                "rids": {tag_name: [rel.id]}
                             }
         self.num_rel += 1
 
