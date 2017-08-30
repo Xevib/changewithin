@@ -8,3 +8,4 @@ osmapi
 osconf
 raven
 click
+osmium
