@@ -72,6 +72,7 @@ class HandlerTest(unittest.TestCase):
         ret = self.handler.has_tag_changed(360662139, old_tags, "surface", 3, "way")
         self.assertFalse(ret)
 
+
 class ChangesWithinTest(unittest.TestCase):
     """
     Initest for changeswithin using osmium
@@ -149,6 +150,43 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertEqual(len(set(self.cw.stats["all"])), len(self.cw.stats["all"]))
         self.assertEqual(len(set(self.cw.stats["building"])), len(self.cw.stats["building"]))
         self.assertTrue(48595327 in self.cw.changesets)
+
+    def test_relation(self):
+        """
+        Tests load of test1.osc
+        :return: None
+        """
+        conf = {
+            'area': {
+                'bbox': ['41.9933', '2.8576', '41.9623', '2.7847']
+            },
+            'tags': {
+                'highway': {
+                    'tags': "highway=.*",
+                    'type': 'node,way'
+                },
+                "housenumber": {
+                    "tags": "addr:housenumber=.*",
+                    "type": "way,node"
+                },
+                "building": {
+                    "tags": "building=public",
+                    "type": "way,node"
+                }
+            },
+            "url_locales": "locales"
+        }
+        self.cw.conf = conf
+        self.cw.load_config(conf)
+        self.cw.handler.set_bbox('41.9933', '2.8576', '41.9623', '2.7847')
+        self.assertEqual(self.cw.handler.north, 41.9933)
+        self.assertEqual(self.cw.handler.east, 2.8576)
+        self.assertEqual(self.cw.handler.south, 41.9623)
+        self.assertEqual(self.cw.handler.west, 2.7847)
+        self.cw.handler.set_tags("all", ".*", ".*", ["node", "way"])
+        self.cw.process_file("test/test_rel.osc")
+        self.assertTrue(41928815 in self.cw.changesets)
+        self.assertTrue(343535 in self.cw.changesets[41928815]["rids"]["all"])
 
 if __name__ == '__main__':
     unittest.main()

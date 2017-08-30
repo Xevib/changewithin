@@ -67,6 +67,54 @@ class ChangeHandler(osmium.SimpleHandler):
             x += 1
         return inside
 
+    def node_in_bbox(self, node_id):
+        """
+        Check if a node id is in the bounding box
+
+        :param node_id: Node id
+        :return: True if the node is in the bounding box
+        :rtype: bool
+        """
+
+        osm_api = osmapi.OsmApi()
+        node = osm_api.NodeGet(node_id)
+        return self.north > node["lat"] > self.south and self.east > node["lon"] > self.west
+
+    def way_id_in_bbox(self, way_id):
+        """
+        Checks if an id of a way is in the bounding box
+
+        :param way_id: id of the way
+        :return:
+        """
+        osm_api = osmapi.OsmApi()
+        way = osm_api.WayGet(way_id)
+        ret = False
+        index = 0
+        while not ret and index < len(way["nd"]):
+            ret = self.node_in_bbox(way["nd"][index])
+            index += 1
+        return ret
+
+    def rel_in_bbox(self, members):
+        """
+        Checks if the relation is in the bounding box
+
+        :param members: List of members of the relation
+        :return: True if the relation is in the bounding box
+        :rtype: bool
+        """
+        for member in members:
+            if member.type == "n":
+                ret = self.node_in_bbox(member.ref)
+                if ret:
+                    return True
+            elif member.type == "w":
+                ret = self.way_id_in_bbox(member.ref)
+                if ret:
+                    return True
+        return False
+
     def has_tag_changed(self, gid, old_tags, watch_tags, version, elem):
         """
         Checks if tags has changed on the changeset
@@ -190,7 +238,8 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "user": node.user,
                                 "uid": node.uid,
                                 "nids": {tag_name: [node.id]},
-                                "wids": {}
+                                "wids": {},
+                                "rids": {}
                             }
                         else:
                             if tag_name not in self.changeset[node.changeset]["nids"]:
@@ -234,14 +283,46 @@ class ChangeHandler(osmium.SimpleHandler):
                                 "user": way.user,
                                 "uid": way.uid,
                                 "nids": {},
-                                "wids": {tag_name: [way.id]}
+                                "wids": {tag_name: [way.id]},
+                                "rids": {}
                             }
         self.num_ways += 1
 
-    def relation(self, r):
+    def relation(self, rel):
         # print 'rel:{}'.format(self.num_rel)
         # for member in r.members:
         #    print member
+        if self.rel_in_bbox(rel.members):
+            for tag_name in self.tags.keys():
+                key_re = self.tags[tag_name]["key_re"]
+                value_re = self.tags[tag_name]["value_re"]
+                if self.has_tag(rel.tags, key_re, value_re):
+                    if rel.deleted:
+                        add_rel = True
+                    elif rel.version == 1:
+                        add_rel = True
+                    else:
+                        rel_tags = self.convert_osmium_tags_dict(rel.tags)
+                        add_rel = self.has_tag_changed(rel.id, rel_tags, key_re, rel.version, "relation")
+                    if add_rel:
+                        if tag_name in self.stats:
+                            self.stats[tag_name].add(rel.changeset)
+                        else:
+                            self.stats[tag_name] = [rel.changeset]
+                        if rel.changeset in self.changeset:
+                            if tag_name not in self.changeset[rel.changeset]["rids"]:
+                                self.changeset[rel.changeset]["rids"][tag_name] = []
+                            self.changeset[rel.changeset]["rids"][
+                                tag_name].append(rel.id)
+                        else:
+                            self.changeset[rel.changeset] = {
+                                "changeset": rel.changeset,
+                                "user": rel.user,
+                                "uid": rel.uid,
+                                "nids": {},
+                                "wids": {},
+                                "rids": {tag_name: [rel.id]}
+                            }
         self.num_rel += 1
 
 

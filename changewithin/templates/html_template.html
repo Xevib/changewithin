@@ -24,6 +24,9 @@
             <p style='font-size:14px;line-height:17px;margin-top:5px;margin-bottom:20px;'>
                 {{_('Ways changed')}} :  {% for way in changesets[changeset]['wids'][watch_tag] %}<a href="http://www.openstreetmap.org/way/{{way}}">{{way}}</a> {% endfor %}
             </p>
+            <p style='font-size:14px;line-height:17px;margin-top:5px;margin-bottom:20px;'>
+                {{_('Relations changed')}} :  {% for rel in changesets[changeset]['rids'][watch_tag] %}<a href="http://www.openstreetmap.org/relation/{{rel}}">{{rel}}</a> {% endfor %}
+            </p>
         {% endfor %}
     {% endfor%}
     {% endif %}
