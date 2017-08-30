@@ -19,3 +19,7 @@ def changeswithin(**kwargs):
         c.report()
     except Exception:
         client.captureException()
+
+        
+def cli_generate_report():
+    changeswithin()
