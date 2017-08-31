@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 import os
 import re
+import sys
+from tempfile import mkstemp
 
 from configobj import ConfigObj
 import osmium
@@ -9,7 +11,7 @@ import gettext
 from jinja2 import Environment
 from osconf import config_from_environment
 import osmapi
-from changewithin.lib import get_osc
+
 from raven import Client
 
 # Env vars:
@@ -19,6 +21,48 @@ from raven import Client
 # EMAIL_RECIPIENTS
 # EMAIL_LANGUAGE
 # CONFIG
+
+
+def get_state():
+    """
+    Downloads the state from OSM replication system
+
+    :return: Actual state as a str
+    """
+
+    r = requests.get('http://planet.openstreetmap.org/replication/day/state.txt')
+
+
+def get_osc(stateurl=None):
+    """
+    Function to download the osc file
+
+    :param stateurl: str with the url of the osc
+    :return: None
+    """
+
+    if not stateurl:
+        state = get_state()
+
+        # zero-pad state so it can be safely split.
+        state = '000000000' + state
+        path = '{0}/{1}/{2}'.format(state[-9:-6], state[-6:-3], state[-3:])
+        stateurl = 'http://planet.openstreetmap.org/replication/day/{0}.osc.gz'.format(path)
+
+    sys.stderr.write('downloading {0}...\n'.format(stateurl))
+    # prepare a local file to store changes
+    handle, filename = mkstemp(prefix='change-', suffix='.osc.gz')
+    os.close(handle)
+
+    with open(filename, "w") as f:
+        resp = requests.get(stateurl)
+        f.write(resp.content)
+    sys.stderr.write('Done\n')
+    #sys.stderr.write('extracting {0}...\n'.format(filename))
+    #os.system('gunzip -f {0}'.format(filename))
+
+    # knock off the ".gz" suffix and return
+    return filename
 
 
 class ChangeHandler(osmium.SimpleHandler):
@@ -67,7 +111,7 @@ class ChangeHandler(osmium.SimpleHandler):
             x += 1
         return inside
 
-    def node_in_bbox(self, node_id):
+    def node_in_bbox(self, node):
         """
         Check if a node id is in the bounding box
 
@@ -76,9 +120,7 @@ class ChangeHandler(osmium.SimpleHandler):
         :rtype: bool
         """
 
-        osm_api = osmapi.OsmApi()
-        node = osm_api.NodeGet(node_id)
-        return self.north > node["lat"] > self.south and self.east > node["lon"] > self.west
+        return self.north > node["data"]["lat"] > self.south and self.east > node["data"]["lon"] > self.west
 
     def way_id_in_bbox(self, way_id):
         """
@@ -96,7 +138,7 @@ class ChangeHandler(osmium.SimpleHandler):
             index += 1
         return ret
 
-    def rel_in_bbox(self, members):
+    def rel_in_bbox(self, relation):
         """
         Checks if the relation is in the bounding box
 
@@ -104,13 +146,11 @@ class ChangeHandler(osmium.SimpleHandler):
         :return: True if the relation is in the bounding box
         :rtype: bool
         """
-        for member in members:
-            if member.type == "n":
-                ret = self.node_in_bbox(member.ref)
-                if ret:
-                    return True
-            elif member.type == "w":
-                ret = self.way_id_in_bbox(member.ref)
+        api = osmapi.OsmApi()
+        rel_data = api.RelationFull(relation.id)
+        for element in rel_data:
+            if element["type"] == "node":
+                ret = self.node_in_bbox(element)
                 if ret:
                     return True
         return False
@@ -375,12 +415,15 @@ class ChangeWithin(object):
 
         languages = ['en']
         if 'email' in self.conf and 'language' in self.conf['email']:
-            languages = [self.conf['email']['language']].extend(languages)
-        if "url_locales" not in self.conf:
+            tmp = languages
+            tmp.append(self.conf['email']['language'])
+            languages = tmp
+        if "email" not in self.conf or "url_locales" not in self.conf["email"] :
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            url_locales = os.path.join(dir_path, 'locales')
+            url_locales = os.path.join(dir_path, '../locales')
         else:
-            url_locales = self.conf["url_locales"]
+            url_locales = self.conf["email"]["url_locales"]
+
         lang = gettext.translation(
             'messages',
             localedir=url_locales,
