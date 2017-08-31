@@ -43,7 +43,7 @@ def get_osc(stateurl=None):
     with open(filename, "w") as f:
         resp = requests.get(stateurl)
         f.write(resp.content)
-    
+    sys.stderr.write('Done\n')
     #sys.stderr.write('extracting {0}...\n'.format(filename))
     #os.system('gunzip -f {0}'.format(filename))
 
