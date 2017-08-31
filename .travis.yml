@@ -16,5 +16,5 @@ script:
  - pwd
  - ls
  - ./update_pot.sh
- - coverage run --include=changewithin/lib.py,changewithin/changewithin.py test/test.py && coverage report
+ - PYTHONPATH="." coverage run --include=changewithin/changewithin.py test/test.py && coverage report
  - coveralls
