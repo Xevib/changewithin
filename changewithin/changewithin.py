@@ -417,7 +417,7 @@ class ChangeWithin(object):
             tmp = languages
             tmp.append(self.conf['email']['language'])
             languages = tmp
-        if "url_locales" not in self.conf["email"]:
+        if "email" in self.conf and "url_locales" not in self.conf["email"]:
             dir_path = os.path.dirname(os.path.realpath(__file__))
             url_locales = os.path.join(dir_path, 'locales')
         else:
