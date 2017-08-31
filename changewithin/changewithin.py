@@ -417,11 +417,15 @@ class ChangeWithin(object):
             tmp = languages
             tmp.append(self.conf['email']['language'])
             languages = tmp
-        if "email" in self.conf and "url_locales" not in self.conf["email"]:
+        if self.conf and "url_locales" not in self.conf["email"]:
             dir_path = os.path.dirname(os.path.realpath(__file__))
             url_locales = os.path.join(dir_path, 'locales')
         else:
-            url_locales = self.conf["email"]["url_locales"]
+            if "url_locales" in self.conf["email"]:
+                url_locales = self.conf["email"]["url_locales"]
+            else:
+                dir_path = os.path.dirname(os.path.realpath(__file__))
+                url_locales = os.path.join(dir_path, 'locales')
         lang = gettext.translation(
             'messages',
             localedir=url_locales,
