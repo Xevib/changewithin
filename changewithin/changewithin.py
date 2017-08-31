@@ -31,6 +31,7 @@ def get_state():
     """
 
     r = requests.get('http://planet.openstreetmap.org/replication/day/state.txt')
+    return r.text.split('\n')[1].split('=')[1]
 
 
 def get_osc(stateurl=None):
