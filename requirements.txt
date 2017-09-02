@@ -9,3 +9,4 @@ osconf
 raven
 click
 osmium
+psycopg2
