@@ -11,6 +11,7 @@ import gettext
 from jinja2 import Environment
 from osconf import config_from_environment
 import osmapi
+import psycopg2
 
 from raven import Client
 
@@ -368,15 +369,56 @@ class ChangeHandler(osmium.SimpleHandler):
         self.num_rel += 1
 
 
+class DbCache(object):
+
+    def __init__(self, host, database, user, password):
+        """
+        Class constructor
+
+        :param host: Host to connect
+        :type host: str
+        :param database: Database name to connect
+        :type db: str
+        :param user: User to connect to the database
+        :type user: str
+        :param password: Password to connect to the databse
+        :type password: str
+        """
+        self.host = host
+        self.databse = database
+        self.user = user
+        self.password = password
+        self.con = psycopg2.connect(host=self.host, database=self.database, user=self.user,password=self.password)
+
+    def initialize(self):
+        """
+        Initializes the database
+        :return: None
+        """
+
+        pkg_dir, this_filename = os.path.split(__file__)
+        schema_url = os.path.join(pkg_dir, 'schama.sql')
+        with open(schema_url, "r") as f:
+            cur = self.con.cursor()
+            sql = f.read()
+            cur.execute(sql)
+
+
 class ChangeWithin(object):
     """
     Class that process the OSC files
     """
 
-    def __init__(self):
+    def __init__(self, host=None, db=None, user=None, password=None):
         """
         Initiliazes the class
+
+        :param host: Database host
+        :param db: Database name
+        :param user: Database user
+        :param password: Databse password
         """
+
         self.conf = {}
         self.env_vars = {}
         self.handler = ChangeHandler()
@@ -384,10 +426,26 @@ class ChangeWithin(object):
         self.changesets = []
         self.stats = {}
 
+        if host is not None and db is not None and user is not None and password is not None:
+            self.has_cache = True
+            self.cache = DbCache(host, db, user, password)
+        else:
+            self.has_cache = False
+            self.cache = None
+
         self.jinja_env = Environment(extensions=['jinja2.ext.i18n'])
         pkg_dir, this_filename = os.path.split(__file__)
         self.text_tmpl = self.get_template(os.path.join(pkg_dir, 'templates', 'text_template.txt'))
         self.html_tmpl = self.get_template(os.path.join(pkg_dir, 'templates', 'html_template.html'))
+
+    def initialize_db(self):
+        """
+        Initializes the databse cache
+        
+        :return:
+        """
+        if self.has_cache:
+            self.cache.initialize()
 
     def get_template(self, template_name):
         """
