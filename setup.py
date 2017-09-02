@@ -13,6 +13,7 @@ setup(
     author_email='xbarnada@gmail.com',
     description='Tool to generate reports',
     install_requires=requirements,
+    include_package_data=True,
     entry_points='''
         [console_scripts]
         changewithin=changewithin.cli:cli_generate_report
