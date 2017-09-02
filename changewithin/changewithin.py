@@ -385,8 +385,10 @@ class ChangeWithin(object):
         self.stats = {}
 
         self.jinja_env = Environment(extensions=['jinja2.ext.i18n'])
-        self.text_tmpl = self.get_template('text_template.txt')
-        self.html_tmpl = self.get_template('html_template.html')
+        this_dir, this_filename = os.path.split(__file__)
+        path_data = os.path.join(this_dir, "data", "data.txt")
+        self.text_tmpl = self.get_template(os.path.join(path_data,'text_template.txt'))
+        self.html_tmpl = self.get_template(os.path.join(path_data,'html_template.html'))
 
     def get_template(self, template_name):
         """
