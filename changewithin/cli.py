@@ -10,7 +10,21 @@ def changeswithin():
 
 
 @changeswithin.command()
-def changeswithin(**kwargs):
+@click.option('--host', default=None)
+@click.option('--db', default=None)
+@click.option('--user', default=None)
+@click.option('--password', default=None)
+@click.option('--initialize/--no-initialize', default=False)
+def changeswithin(host, db, user, password, initialize):
+    """
+
+    :param host:
+    :param db:
+    :param user:
+    :param password:
+    :return:
+    """
+
     client = Client()
     try:
         c = ChangeWithin()

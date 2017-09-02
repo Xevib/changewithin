@@ -441,7 +441,7 @@ class ChangeWithin(object):
     def initialize_db(self):
         """
         Initializes the databse cache
-        
+
         :return:
         """
         if self.has_cache:
