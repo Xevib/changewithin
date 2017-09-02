@@ -149,7 +149,10 @@ class ChangeHandler(osmium.SimpleHandler):
         :rtype: bool
         """
         api = osmapi.OsmApi()
-        rel_data = api.RelationFull(relation.id)
+        try:
+            rel_data = api.RelationFull(relation.id)
+        except TypeError:
+            return False
         for element in rel_data:
             if element["type"] == "node":
                 ret = self.node_in_bbox(element)
