@@ -1,5 +1,7 @@
 dist: trusty
 language: python
+services:
+  - postgres
 python:
   - "2.7"
   - "3.4"
