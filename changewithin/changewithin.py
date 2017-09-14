@@ -385,7 +385,7 @@ class DbCache(object):
         :type password: str
         """
         self.host = host
-        self.databse = database
+        self.database = database
         self.user = user
         self.password = password
         self.con = psycopg2.connect(host=self.host, database=self.database, user=self.user,password=self.password)
@@ -397,11 +397,12 @@ class DbCache(object):
         """
 
         pkg_dir, this_filename = os.path.split(__file__)
-        schema_url = os.path.join(pkg_dir, 'schama.sql')
+        schema_url = os.path.join(pkg_dir, 'schema.sql')
         with open(schema_url, "r") as f:
             cur = self.con.cursor()
             sql = f.read()
             cur.execute(sql)
+            self.con.commit()
 
 
 class ChangeWithin(object):

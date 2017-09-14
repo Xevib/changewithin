@@ -27,10 +27,13 @@ def changeswithin(host, db, user, password, initialize):
 
     client = Client()
     try:
-        c = ChangeWithin()
-        c.load_config()
-        c.process_file()
-        c.report()
+        c = ChangeWithin(host, db, user, password)
+        if initialize:
+            c.initialize_db()
+        else:
+            c.load_config()
+            c.process_file()
+            c.report()
     except Exception:
         client.captureException()
 
