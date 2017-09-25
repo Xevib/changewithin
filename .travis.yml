@@ -14,6 +14,8 @@ install:
  - pip install -r requirements-dev.txt
  - pip install coveralls
  - pip install osmium
+before_script:
+  - psql -c 'create database changewithin;' -U postgres
 script:
  - pwd
  - ls
