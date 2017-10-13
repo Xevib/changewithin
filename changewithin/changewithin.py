@@ -420,7 +420,7 @@ class DbCache(object):
         """
         cur = self.con.cursor()
         insert_sql = """INSERT INTO cache_node
-                          VALUES (%s,%s,ST_MAKEPOINT(%s, %s));
+                          VALUES (%s,%s,ST_SetSRID(ST_MAKEPOINT(%s, %s)));
                          
         """
         cur.execute(insert_sql, (identifier, version, x, y))
