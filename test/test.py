@@ -35,6 +35,7 @@ class CacheTesr(unittest.TestCase):
 
     def test_initialize(self):
         """
+        Test cache initialization
 
         :return:
         """
