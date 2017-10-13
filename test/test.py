@@ -59,6 +59,7 @@ class CacheTesr(unittest.TestCase):
         data = cur.fetchall()
         self.assertEqual(data[0][0], 1)
 
+
 class HandlerTest(unittest.TestCase):
     """
     Unittest for the handler
