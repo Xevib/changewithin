@@ -404,6 +404,22 @@ class DbCache(object):
             cur.execute(sql)
             self.con.commit()
 
+    def add_node(self, identifier, version, x, y):
+        """
+        Adds a node to the cache
+
+        :param identifier: Node id
+        :type identifier: int
+        :param version:
+        :type version: int
+        :param x:
+        :type x: float
+        :param y:
+        :type y: float
+        :return: None
+        """
+        pass
+
 
 class ChangeWithin(object):
     """

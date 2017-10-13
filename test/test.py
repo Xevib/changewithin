@@ -47,6 +47,17 @@ class CacheTesr(unittest.TestCase):
         cur = self.connection.cursor()
         cur.execute("SELECT * FROM cache_node;")
 
+    def test_add_node(self):
+        """
+        Tests how to add a node to the  cache
+
+        :return:
+        """
+        cur = self.connection.cursor()
+        self.cache.add_node(123, 1, 1.23, 2.42)
+        cur.execute("SELECT count(*) from cache_node;")
+        data = cur.fetchall()
+        self.assertEqual(data[0][0], 1)
 
 class HandlerTest(unittest.TestCase):
     """
