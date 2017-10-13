@@ -31,7 +31,7 @@ class CacheTesr(unittest.TestCase):
         :return:
         """
         self.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
-        self.cursor = psycopg2.connect(host="localhost", database="changewithin", user="postgres", password="postgres")
+        self.connection = psycopg2.connect(host="localhost", database="changewithin", user="postgres", password="postgres")
 
     def test_initialize(self):
         """
@@ -39,8 +39,8 @@ class CacheTesr(unittest.TestCase):
         :return:
         """
         self.cache.initialize()
-
-
+        cur = self.connection.cursor()
+        cur.execute("SELECT * FROM cache_node;")
 
 
 class HandlerTest(unittest.TestCase):
