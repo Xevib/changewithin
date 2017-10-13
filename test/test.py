@@ -24,9 +24,13 @@ class LibTest(unittest.TestCase):
 
 
 class CacheTesr(unittest.TestCase):
+    """
+    Test suite for cache
+    """
 
     def setUp(self):
         """
+        Setup database cache test
 
         :return:
         """
