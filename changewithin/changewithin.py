@@ -419,7 +419,7 @@ class DbCache(object):
         :return: None
         """
         cur = self.con.cursor()
-        insert_sql = """INSERT INTO cache_nodes
+        insert_sql = """INSERT INTO cache_node
                           VALUES (%s,%s,ST_MAKEPOINT(%s, %s));
                          
         """
