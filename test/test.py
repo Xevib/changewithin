@@ -3,6 +3,7 @@ from changewithin import ChangeWithin
 from changewithin import ChangeHandler
 from osmium.osm import Location
 from changewithin import get_state
+from changewithin.changewithin import DbCache
 import osmapi
 
 
@@ -19,6 +20,23 @@ class LibTest(unittest.TestCase):
 
         state = get_state()
         self.assertNotEqual(state, "")
+
+
+class CacheTesr(unittest.TestCase):
+
+    def setUp(self):
+        """
+
+        :return:
+        """
+        cache = DbCache("localhost", "changewithin", "postgres", "postgres")
+
+    def test_write_node(self):
+        """
+
+        :return:
+        """
+        pass
 
 
 class HandlerTest(unittest.TestCase):
