@@ -5,6 +5,7 @@ from osmium.osm import Location
 from changewithin import get_state
 from changewithin.changewithin import DbCache
 import osmapi
+import psycopg2
 
 
 class LibTest(unittest.TestCase):
@@ -29,14 +30,17 @@ class CacheTesr(unittest.TestCase):
 
         :return:
         """
-        cache = DbCache("localhost", "changewithin", "postgres", "postgres")
+        self.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
+        self.cursor = psycopg2.connect(host="localhost", database="changewithin", user="postgres", password="postgres")
 
-    def test_write_node(self):
+    def test_initialize(self):
         """
 
         :return:
         """
-        pass
+        self.cache.initialize()
+
+
 
 
 class HandlerTest(unittest.TestCase):

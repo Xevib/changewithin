@@ -378,7 +378,7 @@ class DbCache(object):
         :param host: Host to connect
         :type host: str
         :param database: Database name to connect
-        :type db: str
+        :type database: str
         :param user: User to connect to the database
         :type user: str
         :param password: Password to connect to the databse
