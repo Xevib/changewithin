@@ -23,7 +23,7 @@ class LibTest(unittest.TestCase):
         self.assertNotEqual(state, "")
 
 
-class CacheTesr(unittest.TestCase):
+class CacheTest(unittest.TestCase):
     """
     Test suite for cache
     """
@@ -36,6 +36,7 @@ class CacheTesr(unittest.TestCase):
         """
         self.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
         self.connection = psycopg2.connect(host="localhost", database="changewithin", user="postgres", password="postgres")
+        self.cache.initialize()
 
     def test_initialize(self):
         """
@@ -43,7 +44,6 @@ class CacheTesr(unittest.TestCase):
 
         :return:
         """
-        self.cache.initialize()
         cur = self.connection.cursor()
         cur.execute("SELECT * FROM cache_node;")
 
@@ -226,6 +226,7 @@ class ChangesWithinTest(unittest.TestCase):
         self.cw.process_file("test/test_rel.osc")
         #self.assertTrue(41928815 in self.cw.changesets)
         #self.assertTrue(343535 in self.cw.changesets[41928815]["rids"]["all"])
+
 
 if __name__ == '__main__':
     unittest.main()
