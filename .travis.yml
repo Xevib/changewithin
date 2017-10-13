@@ -16,8 +16,6 @@ install:
  - pip install osmium
 before_script:
   - psql -c 'create database changewithin;' -U postgres -h localhost
-  - psql -c 'select version();' -U postgres -h localhost
-  - psql -c 'create extension postgis;' -d changewithin -U postgres -h localhost
 script:
  - pwd
  - ls
