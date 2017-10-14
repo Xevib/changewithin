@@ -28,6 +28,11 @@ class CacheTest(unittest.TestCase):
     Test suite for cache
     """
 
+    @classmethod
+    def setUpClass(cls):
+        cls.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
+        cls.cache.initialize()
+
     def setUp(self):
         """
         Setup database cache test
@@ -36,7 +41,6 @@ class CacheTest(unittest.TestCase):
         """
         self.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
         self.connection = psycopg2.connect(host="localhost", database="changewithin", user="postgres", password="postgres")
-        self.cache.initialize()
 
     def test_initialize(self):
         """
