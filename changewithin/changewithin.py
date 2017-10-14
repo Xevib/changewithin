@@ -424,6 +424,7 @@ class DbCache(object):
                          
         """
         cur.execute(insert_sql, (identifier, version, x, y))
+        self.con.commit()
 
 
 class ChangeWithin(object):
