@@ -28,11 +28,6 @@ class CacheTest(unittest.TestCase):
     Test suite for cache
     """
 
-    @classmethod
-    def setUpClass(cls):
-        cls.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
-        cls.cache.initialize()
-
     def setUp(self):
         """
         Setup database cache test
