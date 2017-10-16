@@ -58,6 +58,37 @@ class CacheTest(unittest.TestCase):
         data = cur.fetchall()
         self.assertEqual(data[0][0], 1)
 
+    def test_get_node(self):
+        """
+        Test the get_node method
+
+        :return: None
+        """
+
+        cur = self.connection.cursor()
+        cur.execute("TRUNCATE cache_node;")
+
+        self.cache.add_node(42, 1, 1.23, 2.42)
+        self.cache.add_node(42, 2, 2.22, 0.23)
+        self.cache.add_node(43, 1, 2.99, 0.99)
+        nod_42 = {
+            "id": 42,
+            "version": 2,
+            "x": 2.22,
+            "y": 2.42
+        }
+
+        nod_43 = {
+            "id": 43,
+            "version": 1,
+            "x": 2.99,
+            "y": 0.99
+        }
+        self.assertEqual(self.cache.get_node(42), nod_42)
+        self.assertEqual(self.cache.get_node(43), nod_43)
+        self.assertIsNone(self.cache.get_node(1))
+
+
 
 class HandlerTest(unittest.TestCase):
     """
