@@ -426,6 +426,20 @@ class DbCache(object):
         cur.execute(insert_sql, (identifier, version, x, y))
         self.con.commit()
 
+    def get_node(self, identifier, version=None):
+        """
+        Returns a node of the cache, if version is not specified returns the last version avaible
+
+        :param identifier: Identifier of the node
+        :type identifier: int
+        :param version: Version of the node
+        :type version: int
+        :return: dict with identifier, verison,x,y
+        :rtype:dict
+        """
+
+        return None
+
 
 class ChangeWithin(object):
     """
