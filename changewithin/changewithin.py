@@ -437,7 +437,30 @@ class DbCache(object):
         :return: dict with identifier, verison,x,y
         :rtype:dict
         """
+        sql_id = """
+        SELECT id,version,st_x(geom),st_y(geom) 
+        FROM cache_node where id = %s;
+        """
 
+        sql_version = """
+        SELECT id,version,st_x(geom),st_y(geom) 
+        FROM cache_node WHERE id= %s AND version=%s;
+        """
+        cur = self.con.cursor()
+        if version is None:
+            cur.execute(sql_id)
+        else:
+            cur.execute(sql_version)
+
+        data = cur.fetchone()
+        if data:
+            return {
+                "id": data[0],
+                "version": data[1],
+                "x": data[2],
+                "y": data[3]
+
+            }
         return None
 
 
