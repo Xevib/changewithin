@@ -36,6 +36,10 @@ class CacheTest(unittest.TestCase):
         """
         self.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
         self.connection = psycopg2.connect(host="localhost", database="changewithin", user="postgres", password="postgres")
+        cur = self.connection.cursor()
+        cur.execute("TRUNCATE cache_node;")
+        cur.commit()
+        cur.close()
 
     def tearDown(self):
         """
@@ -73,8 +77,7 @@ class CacheTest(unittest.TestCase):
         :return: None
         """
 
-        cur = self.connection.cursor()
-        self.cur.execute("TRUNCATE cache_node;")
+        self.cur = self.connection.cursor()
 
         self.cache.add_node(42, 1, 1.23, 2.42)
         self.cache.add_node(42, 2, 2.22, 0.23)
