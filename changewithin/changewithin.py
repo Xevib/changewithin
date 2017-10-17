@@ -87,6 +87,20 @@ class ChangeHandler(osmium.SimpleHandler):
         self.west = 0
         self.changeset = {}
         self.stats = {}
+        self.cache = None
+        self.cache_enabled = False
+
+    def set_cache(self, cache):
+        """
+        Sets the cache of the handler
+        :param cache: Cache object
+        :type cache: DbCache
+        :return: None
+        :rtype: None
+        """
+
+        self.cache = cache
+        self.cache_enabled = True
 
     def location_in_bbox(self, location):
         """
@@ -489,6 +503,7 @@ class ChangeWithin(object):
         if host is not None and db is not None and user is not None and password is not None:
             self.has_cache = True
             self.cache = DbCache(host, db, user, password)
+            self.handler.set_cache(self.cache)
         else:
             self.has_cache = False
             self.cache = None
