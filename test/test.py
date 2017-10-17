@@ -37,14 +37,22 @@ class CacheTest(unittest.TestCase):
         self.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
         self.connection = psycopg2.connect(host="localhost", database="changewithin", user="postgres", password="postgres")
 
+    def tearDown(self):
+        """
+
+        :return:
+        """
+        self.cur.close()
+        self.connection.close()
+
     def test_initialize(self):
         """
         Test cache initialization
 
         :return:
         """
-        cur = self.connection.cursor()
-        cur.execute("SELECT * FROM cache_node;")
+        self.cur = self.connection.cursor()
+        self.cur.execute("SELECT * FROM cache_node;")
 
     def test_add_node(self):
         """
@@ -52,10 +60,10 @@ class CacheTest(unittest.TestCase):
 
         :return:
         """
-        cur = self.connection.cursor()
+        self.cur = self.connection.cursor()
         self.cache.add_node(123, 1, 1.23, 2.42)
-        cur.execute("SELECT count(*) from cache_node;")
-        data = cur.fetchall()
+        self.cur.execute("SELECT count(*) from cache_node;")
+        data = self.cur.fetchall()
         self.assertEqual(data[0][0], 1)
 
     def test_get_node(self):
@@ -66,7 +74,7 @@ class CacheTest(unittest.TestCase):
         """
 
         cur = self.connection.cursor()
-        cur.execute("TRUNCATE cache_node;")
+        self.cur.execute("TRUNCATE cache_node;")
 
         self.cache.add_node(42, 1, 1.23, 2.42)
         self.cache.add_node(42, 2, 2.22, 0.23)
@@ -87,7 +95,6 @@ class CacheTest(unittest.TestCase):
         self.assertEqual(self.cache.get_node(42), nod_42)
         self.assertEqual(self.cache.get_node(43), nod_43)
         self.assertIsNone(self.cache.get_node(1))
-
 
 
 class HandlerTest(unittest.TestCase):
