@@ -448,9 +448,9 @@ class DbCache(object):
         """
         cur = self.con.cursor()
         if version is None:
-            cur.execute(sql_id)
+            cur.execute(sql_id, (identifier,))
         else:
-            cur.execute(sql_version)
+            cur.execute(sql_version, (identifier, version))
 
         data = cur.fetchone()
         if data:
