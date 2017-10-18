@@ -12,6 +12,7 @@ from jinja2 import Environment
 from osconf import config_from_environment
 import osmapi
 import psycopg2
+import psycopg2.extras
 
 from raven import Client
 
@@ -158,7 +159,7 @@ class ChangeHandler(osmium.SimpleHandler):
         """
         Checks if the relation is in the bounding box
 
-        :param members: List of members of the relation
+        :param relation: List of members of the relation
         :return: True if the relation is in the bounding box
         :rtype: bool
         """
@@ -271,6 +272,8 @@ class ChangeHandler(osmium.SimpleHandler):
         :return: None
         """
 
+        if self.cache_enabled:
+            self.cache.add_node(node.id, node.version, node.lat,node.lon)
         if self.location_in_bbox(node.location):
             for tag_name in self.tags.keys():
                 key_re = self.tags[tag_name]["key_re"]
@@ -403,6 +406,7 @@ class DbCache(object):
         self.user = user
         self.password = password
         self.con = psycopg2.connect(host=self.host, database=self.database, user=self.user,password=self.password)
+        psycopg2.extras.register_hstore(self.con)
 
     def initialize(self):
         """
@@ -418,7 +422,7 @@ class DbCache(object):
             cur.execute(sql)
             self.con.commit()
 
-    def add_node(self, identifier, version, x, y):
+    def add_node(self, identifier, version, x, y,tags):
         """
         Adds a node to the cache
 
@@ -426,18 +430,20 @@ class DbCache(object):
         :type identifier: int
         :param version:
         :type version: int
-        :param x:
+        :param x: X coordenate
         :type x: float
-        :param y:
+        :param y: Y coordenate
         :type y: float
+        :param tags: Tags to store
+        :type tags: dict
         :return: None
         """
         cur = self.con.cursor()
         insert_sql = """INSERT INTO cache_node
-                          VALUES (%s,%s,ST_SetSRID(ST_MAKEPOINT(%s, %s),4326));
+                          VALUES (%s,%s,%s,ST_SetSRID(ST_MAKEPOINT(%s, %s),4326));
                          
         """
-        cur.execute(insert_sql, (identifier, version, x, y))
+        cur.execute(insert_sql, (identifier, version,tags, x, y))
         self.con.commit()
 
     def get_node(self, identifier, version=None):
@@ -452,12 +458,12 @@ class DbCache(object):
         :rtype:dict
         """
         sql_id = """
-        SELECT id,version,st_x(geom),st_y(geom) 
+        SELECT id,version,st_x(geom),st_y(geom),tags
         FROM cache_node where id = %s;
         """
 
         sql_version = """
-        SELECT id,version,st_x(geom),st_y(geom) 
+        SELECT id,version,st_x(geom),st_y(geom),tags 
         FROM cache_node WHERE id= %s AND version=%s;
         """
         cur = self.con.cursor()
@@ -472,8 +478,8 @@ class DbCache(object):
                 "id": data[0],
                 "version": data[1],
                 "x": data[2],
-                "y": data[3]
-
+                "y": data[3],
+                "tags": data[4]
             }
         return None
 
