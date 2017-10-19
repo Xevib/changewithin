@@ -187,7 +187,12 @@ class ChangeHandler(osmium.SimpleHandler):
         previous_elem = {}
         osm_api = osmapi.OsmApi()
         if elem == 'node':
-            previous_elem = osm_api.NodeHistory(gid)[version - 1]
+            if self.cache_enabled:
+                previous_elem = self.cache.get_node(gid, version -1)
+                if previous_elem is None:
+                    previous_elem = osm_api.NodeHistory(gid)[version - 1]
+            else:
+                previous_elem = osm_api.NodeHistory(gid)[version - 1]
         elif elem == 'way':
             previous_elem = osm_api.WayHistory(gid)[version - 1]
         elif elem == 'relation':
@@ -273,7 +278,7 @@ class ChangeHandler(osmium.SimpleHandler):
         """
 
         if self.cache_enabled:
-            self.cache.add_node(node.id, node.version, node.lat,node.lon)
+            self.cache.add_node(node.id, node.version, node.lat, node.lon)
         if self.location_in_bbox(node.location):
             for tag_name in self.tags.keys():
                 key_re = self.tags[tag_name]["key_re"]
