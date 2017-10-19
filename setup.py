@@ -21,7 +21,8 @@ setup(
     package_data={
         'changewithin': [
             "changewithin/templates/text_template.txt",
-            "changewithin/templates/html_template.html"
+            "changewithin/templates/html_template.html",
+            "changewithin/schema.sql"
         ]
     }
 )

@@ -1,5 +1,7 @@
 dist: trusty
 language: python
+services:
+  - postgres
 python:
   - "2.7"
   - "3.4"
@@ -7,11 +9,14 @@ python:
 before_install:
  - sudo apt-get update -q
 install:
- - sudo apt-get install gettext python-lxml gcc cmake libgeos++-dev libgdal-dev libsparsehash-dev libboost-dev libbz2-dev zlib1g-dev libexpat1-dev libutfcpp-dev libosmpbf-dev libprotobuf-dev protobuf-compiler cmake-curses-gui make libboost-python-dev
+ - sudo apt-get install gettext python-lxml gcc cmake libgeos++-dev libgdal-dev libsparsehash-dev libboost-dev libbz2-dev zlib1g-dev libexpat1-dev libutfcpp-dev libosmpbf-dev libprotobuf-dev protobuf-compiler cmake-curses-gui make libboost-python-dev postgis postgresql-9.2-postgis-2.3
  - pip install -r requirements.txt
  - pip install -r requirements-dev.txt
  - pip install coveralls
  - pip install osmium
+before_script:
+  - psql -c 'create database changewithin;' -U postgres -h localhost
+  - psql -f changewithin/schema.sql -U postgres -h localhost -d changewithin
 script:
  - pwd
  - ls

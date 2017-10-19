@@ -11,6 +11,8 @@ import gettext
 from jinja2 import Environment
 from osconf import config_from_environment
 import osmapi
+import psycopg2
+import psycopg2.extras
 
 from raven import Client
 
@@ -86,6 +88,20 @@ class ChangeHandler(osmium.SimpleHandler):
         self.west = 0
         self.changeset = {}
         self.stats = {}
+        self.cache = None
+        self.cache_enabled = False
+
+    def set_cache(self, cache):
+        """
+        Sets the cache of the handler
+        :param cache: Cache object
+        :type cache: DbCache
+        :return: None
+        :rtype: None
+        """
+
+        self.cache = cache
+        self.cache_enabled = True
 
     def location_in_bbox(self, location):
         """
@@ -143,7 +159,7 @@ class ChangeHandler(osmium.SimpleHandler):
         """
         Checks if the relation is in the bounding box
 
-        :param members: List of members of the relation
+        :param relation: List of members of the relation
         :return: True if the relation is in the bounding box
         :rtype: bool
         """
@@ -171,7 +187,12 @@ class ChangeHandler(osmium.SimpleHandler):
         previous_elem = {}
         osm_api = osmapi.OsmApi()
         if elem == 'node':
-            previous_elem = osm_api.NodeHistory(gid)[version - 1]
+            if self.cache_enabled:
+                previous_elem = self.cache.get_node(gid, version -1)
+                if previous_elem is None:
+                    previous_elem = osm_api.NodeHistory(gid)[version - 1]
+            else:
+                previous_elem = osm_api.NodeHistory(gid)[version - 1]
         elif elem == 'way':
             previous_elem = osm_api.WayHistory(gid)[version - 1]
         elif elem == 'relation':
@@ -256,6 +277,8 @@ class ChangeHandler(osmium.SimpleHandler):
         :return: None
         """
 
+        if self.cache_enabled:
+            self.cache.add_node(node.id, node.version, node.lat, node.lon)
         if self.location_in_bbox(node.location):
             for tag_name in self.tags.keys():
                 key_re = self.tags[tag_name]["key_re"]
@@ -368,15 +391,119 @@ class ChangeHandler(osmium.SimpleHandler):
         self.num_rel += 1
 
 
+class DbCache(object):
+
+    def __init__(self, host, database, user, password):
+        """
+        Class constructor
+
+        :param host: Host to connect
+        :type host: str
+        :param database: Database name to connect
+        :type database: str
+        :param user: User to connect to the database
+        :type user: str
+        :param password: Password to connect to the databse
+        :type password: str
+        """
+        self.host = host
+        self.database = database
+        self.user = user
+        self.password = password
+        self.con = psycopg2.connect(host=self.host, database=self.database, user=self.user,password=self.password)
+        psycopg2.extras.register_hstore(self.con)
+
+    def initialize(self):
+        """
+        Initializes the database
+        :return: None
+        """
+
+        pkg_dir, this_filename = os.path.split(__file__)
+        schema_url = os.path.join(pkg_dir, 'schema.sql')
+        with open(schema_url, "r") as f:
+            cur = self.con.cursor()
+            sql = f.read()
+            cur.execute(sql)
+            self.con.commit()
+
+    def add_node(self, identifier, version, x, y,tags):
+        """
+        Adds a node to the cache
+
+        :param identifier: Node id
+        :type identifier: int
+        :param version:
+        :type version: int
+        :param x: X coordenate
+        :type x: float
+        :param y: Y coordenate
+        :type y: float
+        :param tags: Tags to store
+        :type tags: dict
+        :return: None
+        """
+        cur = self.con.cursor()
+        insert_sql = """INSERT INTO cache_node
+                          VALUES (%s,%s,%s,ST_SetSRID(ST_MAKEPOINT(%s, %s),4326));
+                         
+        """
+        cur.execute(insert_sql, (identifier, version,tags, x, y))
+        self.con.commit()
+
+    def get_node(self, identifier, version=None):
+        """
+        Returns a node of the cache, if version is not specified returns the last version avaible
+
+        :param identifier: Identifier of the node
+        :type identifier: int
+        :param version: Version of the node
+        :type version: int
+        :return: dict with identifier, verison,x,y
+        :rtype:dict
+        """
+        sql_id = """
+        SELECT id,version,st_x(geom),st_y(geom),tags
+        FROM cache_node where id = %s;
+        """
+
+        sql_version = """
+        SELECT id,version,st_x(geom),st_y(geom),tags 
+        FROM cache_node WHERE id= %s AND version=%s;
+        """
+        cur = self.con.cursor()
+        if version is None:
+            cur.execute(sql_id, (identifier,))
+        else:
+            cur.execute(sql_version, (identifier, version))
+
+        data = cur.fetchone()
+        if data:
+            return {
+                "id": data[0],
+                "version": data[1],
+                "x": data[2],
+                "y": data[3],
+                "tags": data[4]
+            }
+        return None
+
+
 class ChangeWithin(object):
     """
     Class that process the OSC files
     """
 
-    def __init__(self):
+    def __init__(self, host=None, db=None, user=None, password=None):
         """
         Initiliazes the class
+
+        :param host: Database host
+        :param db: Database name
+        :param user: Database user
+        :param password: Databse password
         """
+
         self.conf = {}
         self.env_vars = {}
         self.handler = ChangeHandler()
@@ -384,10 +511,27 @@ class ChangeWithin(object):
         self.changesets = []
         self.stats = {}
 
+        if host is not None and db is not None and user is not None and password is not None:
+            self.has_cache = True
+            self.cache = DbCache(host, db, user, password)
+            self.handler.set_cache(self.cache)
+        else:
+            self.has_cache = False
+            self.cache = None
+
         self.jinja_env = Environment(extensions=['jinja2.ext.i18n'])
         pkg_dir, this_filename = os.path.split(__file__)
         self.text_tmpl = self.get_template(os.path.join(pkg_dir, 'templates', 'text_template.txt'))
         self.html_tmpl = self.get_template(os.path.join(pkg_dir, 'templates', 'html_template.html'))
+
+    def initialize_db(self):
+        """
+        Initializes the databse cache
+
+        :return:
+        """
+        if self.has_cache:
+            self.cache.initialize()
 
     def get_template(self, template_name):
         """

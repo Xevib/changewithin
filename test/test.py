@@ -3,7 +3,9 @@ from changewithin import ChangeWithin
 from changewithin import ChangeHandler
 from osmium.osm import Location
 from changewithin import get_state
+from changewithin.changewithin import DbCache
 import osmapi
+import psycopg2
 
 
 class LibTest(unittest.TestCase):
@@ -19,6 +21,87 @@ class LibTest(unittest.TestCase):
 
         state = get_state()
         self.assertNotEqual(state, "")
+
+
+class CacheTest(unittest.TestCase):
+    """
+    Test suite for cache
+    """
+
+    def setUp(self):
+        """
+        Setup database cache test
+
+        :return:
+        """
+        self.cache = DbCache("localhost", "changewithin", "postgres", "postgres")
+        self.connection = psycopg2.connect(host="localhost", database="changewithin", user="postgres", password="postgres")
+
+    def tearDown(self):
+        """
+
+        :return:
+        """
+        self.cur.close()
+        self.connection.close()
+
+    def test_initialize(self):
+        """
+        Test cache initialization
+
+        :return:
+        """
+        self.cur = self.connection.cursor()
+        self.cur.execute("SELECT * FROM cache_node;")
+
+    def test_add_node(self):
+        """
+        Tests how to add a node to the  cache
+
+        :return:
+        """
+        self.cur = self.connection.cursor()
+        self.cur.execute("DELETE FROM cache_node;")
+        self.connection.commit()
+        self.cache.add_node(123, 1, 1.23, 2.42,{})
+        self.cur.execute("SELECT count(*) from cache_node;")
+        data = self.cur.fetchall()
+        self.assertEqual(data[0][0], 1)
+
+    def test_get_node(self):
+        """
+        Test the get_node method
+
+        :return: None
+        """
+
+        self.cur = self.connection.cursor()
+
+        self.cache.add_node(42, 1, 1.23, 2.42,{"building": "yes"})
+        self.cache.add_node(42, 2, 2.22, 0.23,{"building": "yes", "name":"test"})
+        self.cache.add_node(43, 1, 2.99, 0.99,{})
+        nod_42 = {
+            "id": 42,
+            "version": 2,
+            "x": 2.22,
+            "y": 0.23,
+            "tags":{
+                "building": "yes",
+                "name": "test"
+
+            }
+        }
+
+        nod_43 = {
+            "id": 43,
+            "version": 1,
+            "x": 2.99,
+            "y": 0.99,
+            "tags":{}
+        }
+        self.assertEqual(self.cache.get_node(42, 2), nod_42)
+        self.assertEqual(self.cache.get_node(43), nod_43)
+        self.assertIsNone(self.cache.get_node(1))
 
 
 class HandlerTest(unittest.TestCase):
@@ -187,6 +270,7 @@ class ChangesWithinTest(unittest.TestCase):
         self.cw.process_file("test/test_rel.osc")
         #self.assertTrue(41928815 in self.cw.changesets)
         #self.assertTrue(343535 in self.cw.changesets[41928815]["rids"]["all"])
+
 
 if __name__ == '__main__':
     unittest.main()
