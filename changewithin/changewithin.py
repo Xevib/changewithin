@@ -91,16 +91,18 @@ class ChangeHandler(osmium.SimpleHandler):
         self.cache = None
         self.cache_enabled = False
 
-    def set_cache(self, cache):
+    def set_cache(self, host, db, user, password):
         """
         Sets the cache of the handler
-        :param cache: Cache object
-        :type cache: DbCache
+        :param host: database host
+        :param db: database name
+        :param user: database user
+        :param password: database password
         :return: None
         :rtype: None
         """
 
-        self.cache = cache
+        self.cache = DbCache(host,db,user,password)
         self.cache_enabled = True
 
     def location_in_bbox(self, location):
@@ -278,7 +280,7 @@ class ChangeHandler(osmium.SimpleHandler):
         """
 
         if self.cache_enabled:
-            self.cache.add_node(node.id, node.version, node.lat, node.lon)
+            self.cache.add_node(node.id, node.version, node.location.lat, node.location.lon, self.convert_osmium_tags_dict(node.tags))
         if self.location_in_bbox(node.location):
             for tag_name in self.tags.keys():
                 key_re = self.tags[tag_name]["key_re"]
@@ -513,8 +515,7 @@ class ChangeWithin(object):
 
         if host is not None and db is not None and user is not None and password is not None:
             self.has_cache = True
-            self.cache = DbCache(host, db, user, password)
-            self.handler.set_cache(self.cache)
+            self.handler.set_cache(host, db, user, password)
         else:
             self.has_cache = False
             self.cache = None
