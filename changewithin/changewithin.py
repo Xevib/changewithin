@@ -452,6 +452,7 @@ class DbCache(object):
         """
         cur.execute(insert_sql, (identifier, version,tags, x, y))
         self.con.commit()
+        cur.close()
 
     def get_node(self, identifier, version=None):
         """
