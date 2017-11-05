@@ -90,6 +90,7 @@ class ChangeHandler(osmium.SimpleHandler):
         self.stats = {}
         self.cache = None
         self.cache_enabled = False
+        self.sentry_client = Client()
 
     def set_cache(self, host, db, user, password):
         """
@@ -278,41 +279,44 @@ class ChangeHandler(osmium.SimpleHandler):
         :param node: Node to check 
         :return: None
         """
+        try:
 
-        if self.cache_enabled:
-            self.cache.add_node(node.id, node.version, node.location.lat, node.location.lon, self.convert_osmium_tags_dict(node.tags))
-        if self.location_in_bbox(node.location):
-            for tag_name in self.tags.keys():
-                key_re = self.tags[tag_name]["key_re"]
-                value_re = self.tags[tag_name]["value_re"]
-                if self.has_tag(node.tags, key_re, value_re):
-                    if node.deleted:
-                        add_node = True
-                    elif node.version == 1:
-                        add_node = True
-                    else:
-                        add_node = self.has_tag_changed(
-                            node.id, self.convert_osmium_tags_dict(node.tags), key_re, node.version, "node")
-                    if add_node:
-                        if tag_name in self.stats:
-                            self.stats[tag_name].add(node.changeset)
+            if self.cache_enabled:
+                self.cache.add_node(node.id, node.version, node.location.lat, node.location.lon, self.convert_osmium_tags_dict(node.tags))
+            if self.location_in_bbox(node.location):
+                for tag_name in self.tags.keys():
+                    key_re = self.tags[tag_name]["key_re"]
+                    value_re = self.tags[tag_name]["value_re"]
+                    if self.has_tag(node.tags, key_re, value_re):
+                        if node.deleted:
+                            add_node = True
+                        elif node.version == 1:
+                            add_node = True
                         else:
-                            self.stats[tag_name] = [node.changeset]
-                        if node.changeset not in self.changeset:
-                            self.changeset[node.changeset] = {
-                                "changeset": node.changeset,
-                                "user": node.user,
-                                "uid": node.uid,
-                                "nids": {tag_name: [node.id]},
-                                "wids": {},
-                                "rids": {}
-                            }
-                        else:
-                            if tag_name not in self.changeset[node.changeset]["nids"]:
-                                self.changeset[node.changeset]["nids"][tag_name] = []
-                            self.changeset[node.changeset]["nids"][tag_name].append(
-                                node.id)
-        self.num_nodes += 1
+                            add_node = self.has_tag_changed(
+                                node.id, self.convert_osmium_tags_dict(node.tags), key_re, node.version, "node")
+                        if add_node:
+                            if tag_name in self.stats:
+                                self.stats[tag_name].add(node.changeset)
+                            else:
+                                self.stats[tag_name] = [node.changeset]
+                            if node.changeset not in self.changeset:
+                                self.changeset[node.changeset] = {
+                                    "changeset": node.changeset,
+                                    "user": node.user,
+                                    "uid": node.uid,
+                                    "nids": {tag_name: [node.id]},
+                                    "wids": {},
+                                    "rids": {}
+                                }
+                            else:
+                                if tag_name not in self.changeset[node.changeset]["nids"]:
+                                    self.changeset[node.changeset]["nids"][tag_name] = []
+                                self.changeset[node.changeset]["nids"][tag_name].append(
+                                    node.id)
+            self.num_nodes += 1
+        except Exception:
+            self.sentry_client.captureException()
 
     def way(self, way):
         """
@@ -321,38 +325,40 @@ class ChangeHandler(osmium.SimpleHandler):
         :param way: Way to check
         :return: None
         """
-
-        if self.way_in_bbox(way.nodes):
-            for tag_name in self.tags.keys():
-                key_re = self.tags[tag_name]["key_re"]
-                value_re = self.tags[tag_name]["value_re"]
-                if self.has_tag(way.tags, key_re, value_re):
-                    if way.deleted:
-                        add_way = True
-                    elif way.version == 1:
-                        add_way = True
-                    else:
-                        add_way = self.has_tag_changed(
-                            way.id, self.convert_osmium_tags_dict(way.tags), key_re, way.version, "way")
-                    if add_way:
-                        if tag_name in self.stats:
-                            self.stats[tag_name].add(way.changeset)
+        try:
+            if self.way_in_bbox(way.nodes):
+                for tag_name in self.tags.keys():
+                    key_re = self.tags[tag_name]["key_re"]
+                    value_re = self.tags[tag_name]["value_re"]
+                    if self.has_tag(way.tags, key_re, value_re):
+                        if way.deleted:
+                            add_way = True
+                        elif way.version == 1:
+                            add_way = True
                         else:
-                            self.stats[tag_name] = [way.changeset]
-                        if way.changeset in self.changeset:
-                            if tag_name not in self.changeset[way.changeset]["wids"]:
-                                self.changeset[way.changeset]["wids"][tag_name] = []
-                            self.changeset[way.changeset]["wids"][tag_name].append(way.id)
-                        else:
-                            self.changeset[way.changeset] = {
-                                "changeset": way.changeset,
-                                "user": way.user,
-                                "uid": way.uid,
-                                "nids": {},
-                                "wids": {tag_name: [way.id]},
-                                "rids": {}
-                            }
-        self.num_ways += 1
+                            add_way = self.has_tag_changed(
+                                way.id, self.convert_osmium_tags_dict(way.tags), key_re, way.version, "way")
+                        if add_way:
+                            if tag_name in self.stats:
+                                self.stats[tag_name].add(way.changeset)
+                            else:
+                                self.stats[tag_name] = [way.changeset]
+                            if way.changeset in self.changeset:
+                                if tag_name not in self.changeset[way.changeset]["wids"]:
+                                    self.changeset[way.changeset]["wids"][tag_name] = []
+                                self.changeset[way.changeset]["wids"][tag_name].append(way.id)
+                            else:
+                                self.changeset[way.changeset] = {
+                                    "changeset": way.changeset,
+                                    "user": way.user,
+                                    "uid": way.uid,
+                                    "nids": {},
+                                    "wids": {tag_name: [way.id]},
+                                    "rids": {}
+                                }
+            self.num_ways += 1
+        except Exception:
+            self.sentry_client.captureException()
 
     def relation(self, rel):
         # print 'rel:{}'.format(self.num_rel)
