@@ -175,6 +175,7 @@ class ChangeHandler(osmium.SimpleHandler):
                     if ret:
                         return True
             elif member.type == "w":
+                print "way ref:{}".format(member.ref)
                 way = api.WayFull(member.ref)
                 for node in way:
                     ret = self.node_in_bbox(node)
