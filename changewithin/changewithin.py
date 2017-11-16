@@ -514,6 +514,31 @@ class DbCache(object):
             }
         return None
 
+    def add_way(self, identifier, version,nodes, tags):
+        """
+        Adds a way into the cache
+
+        :param identifier: identifier of the way to store
+        :type identifier: int
+        :param version: version of the way
+        :type version: int
+        :param nodes: Nodes to store
+        :param tags: Tags to store
+        :type tags: dict
+        :return: None
+        :rtype: None
+        """
+        cur = self.con.cursor()
+        insert_sql = """INSERT INTO cache_way
+                          VALUES (%s,%s,%s,ST_SetSRID(st_makeline(%s),4326));
+
+        """
+        for node in nodes:
+            geom = "ST_MAKELINE({},{})".format(node.lat, node.lon)
+        cur.execute(insert_sql, (identifier, version, tags, geom))
+        self.con.commit()
+        cur.close()
+
 
 class ChangeWithin(object):
     """
