@@ -1,7 +1,7 @@
 import unittest
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
-from osmium.osm import Location
+from osmium.osm import Location, WayNodeList, Node
 from changewithin import get_state
 from changewithin.changewithin import DbCache
 import osmapi
@@ -64,6 +64,32 @@ class CacheTest(unittest.TestCase):
         self.cur.execute("DELETE FROM cache_node;")
         self.connection.commit()
         self.cache.add_node(123, 1, 1.23, 2.42,{})
+        self.cur.execute("SELECT count(*) from cache_node;")
+        data = self.cur.fetchall()
+        self.assertEqual(data[0][0], 1)
+
+    def test_add_way(self):
+        """
+        Tests how to add a way to the cache
+
+        :return: None
+        """
+
+        n1 = Node()
+        n1.id = 1
+        n1.location = Location(1, 1)
+
+        n2 = Node()
+        n2.id = 2
+        n2.location = Location(2, 2)
+
+        nl = WayNodeList([n1, n2])
+
+        self.cur = self.connection.cursor()
+        self.cur.execute("DELETE FROM cache_node;")
+        self.connection.commit()
+        self.cache.add_way(1, 2, nl, {})
+
         self.cur.execute("SELECT count(*) from cache_node;")
         data = self.cur.fetchall()
         self.assertEqual(data[0][0], 1)
