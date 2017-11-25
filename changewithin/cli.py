@@ -15,13 +15,17 @@ def changeswithin():
 @click.option('--user', default=None)
 @click.option('--password', default=None)
 @click.option('--initialize/--no-initialize', default=False)
-def changeswithin(host, db, user, password, initialize):
+@click.option("--file",default=None)
+def changeswithin(host, db, user, password, initialize, file):
     """
+    Client entry
 
     :param host:
     :param db:
     :param user:
     :param password:
+    :param initialize:
+    :param file:
     :return:
     """
 
@@ -32,7 +36,10 @@ def changeswithin(host, db, user, password, initialize):
             c.initialize_db()
         else:
             c.load_config()
-            c.process_file()
+            if file is not None:
+                c.process_file(str(file))
+            else:
+                c.process_file()
             c.report()
     except Exception:
         client.captureException()
