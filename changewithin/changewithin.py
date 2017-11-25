@@ -342,6 +342,9 @@ class ChangeHandler(osmium.SimpleHandler):
         :param way: Way to check
         :return: None
         """
+        if self.cache.get_pending_nodes() > 0:
+            self.cache.commit()
+
         try:
             if self.way_in_bbox(way.nodes):
                 for tag_name in self.tags.keys():
@@ -381,6 +384,9 @@ class ChangeHandler(osmium.SimpleHandler):
         # print 'rel:{}'.format(self.num_rel)
         # for member in r.members:
         #    print member
+        if self.cache.get_pending_nodes > 0 or self.cache.get_pending_ways > 0:
+            self.cache.commit()
+            
         print ("rel.id {} len:{}".format(rel.id,len(rel.members)))
         if not rel.deleted and self.rel_in_bbox(rel):
             for tag_name in self.tags.keys():
@@ -437,6 +443,18 @@ class DbCache(object):
         self.password = password
         self.con = psycopg2.connect(host=self.host, database=self.database, user=self.user,password=self.password)
         psycopg2.extras.register_hstore(self.con)
+        self.pending_nodes = 0
+        self.pending_ways = 0
+
+    def commit(self):
+        """
+        Commits the data of the connection
+
+        :return: None
+        """
+        self.pending_nodes = 0
+        self.pending_ways = 0
+        self.con.commit()
 
     def initialize(self):
         """
@@ -474,8 +492,26 @@ class DbCache(object):
                          
         """
         cur.execute(insert_sql, (identifier, version,tags, x, y))
-        self.con.commit()
         cur.close()
+        self.pending_nodes += 1
+
+    def get_pending_nodes(self):
+        """
+        Gets the pending to commit nodes
+
+        :return: Pending nodes
+        :rtype: int
+        """
+        return self.pending_nodes
+
+    def get_pending_ways(self):
+        """
+        Gets the pending to commit ways
+
+        :return: Pending ways
+        :rtype: int
+        """
+        return  self.pending_ways
 
     def get_node(self, identifier, version=None):
         """
@@ -514,7 +550,7 @@ class DbCache(object):
             }
         return None
 
-    def add_way(self, identifier, version,nodes, tags):
+    def add_way(self, identifier, version, nodes, tags):
         """
         Adds a way into the cache
 
@@ -536,8 +572,8 @@ class DbCache(object):
         for node in nodes:
             geom = "ST_MAKELINE({},{})".format(node.lat, node.lon)
         cur.execute(insert_sql, (identifier, version, tags, geom))
-        self.con.commit()
         cur.close()
+        self.pending_ways += 1
 
 
 class ChangeWithin(object):
