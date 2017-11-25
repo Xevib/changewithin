@@ -140,7 +140,13 @@ class ChangeHandler(osmium.SimpleHandler):
         :rtype: bool
         """
 
-        return self.north > node["data"]["lat"] > self.south and self.east > node["data"]["lon"] > self.west
+        if isinstance(node,dict):
+            lat = node["lat"]
+            lon = node["lon"]
+        else:
+            lat = node["data"]["lat"]
+            lon = node["data"]["lon"]
+        return self.north > lat > self.south and self.east > lon > self.west
 
     def way_id_in_bbox(self, way_id):
         """
