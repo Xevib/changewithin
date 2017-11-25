@@ -180,9 +180,18 @@ class ChangeHandler(osmium.SimpleHandler):
                 print "way ref:{}".format(member.ref)
                 way = api.WayFull(member.ref)
                 for node in way:
-                    ret = self.node_in_bbox(node)
-                    if ret:
-                        return True
+                    if isinstance(node, dict):
+                        for node_id in node.get("nd",[]):
+                            n = self.cache.get_node(node_id)
+                            if node is None:
+                                node = api.NodeGet(node_id)
+                            ret = self.node_in_bbox(n)
+                            if ret:
+                                return True
+                    else:
+                        ret = self.node_in_bbox(node)
+                        if ret:
+                            return True
             else:
                 print "member.type:{}".format(member.type)
 
