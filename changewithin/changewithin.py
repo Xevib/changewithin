@@ -171,6 +171,8 @@ class ChangeHandler(osmium.SimpleHandler):
             if member.type == "n":
                 if self.cache_enabled:
                     node = self.cache.get_node(member.ref)
+                    if node is None:
+                        node = api.NodeGet(member.ref)
                     ret = self.node_in_bbox(node)
                     if ret:
                         return True
