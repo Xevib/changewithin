@@ -381,7 +381,7 @@ class ChangeHandler(osmium.SimpleHandler):
         # print 'rel:{}'.format(self.num_rel)
         # for member in r.members:
         #    print member
-        print ("rel.id {}".format(rel.id))
+        print ("rel.id {} len:{}".format(rel.id,len(rel.members)))
         if not rel.deleted and self.rel_in_bbox(rel):
             for tag_name in self.tags.keys():
                 key_re = self.tags[tag_name]["key_re"]
