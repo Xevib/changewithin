@@ -140,9 +140,13 @@ class ChangeHandler(osmium.SimpleHandler):
         :rtype: bool
         """
 
-        if isinstance(node,dict):
-            lat = node["lat"]
-            lon = node["lon"]
+        if isinstance(node, dict):
+            if "lat" in node and "lon" in node:
+                lat = node["lat"]
+                lon = node["lon"]
+            elif "x" in node and "y" in node:
+                lat = node["x"]
+                lon = node["y"]
         else:
             lat = node["data"]["lat"]
             lon = node["data"]["lon"]
