@@ -615,7 +615,7 @@ class DbCache(object):
         """
         cur = self.con.cursor()
         insert_sql = """INSERT INTO cache_way
-                          VALUES (%s,%s,%s,ST_SetSRID(ST_MakeLine(%s),4326));
+                          VALUES (%s,%s,%s,ST_SetSRID(ST_MakeLine(ARRAY[%s]),4326));
 
         """
         geom = []
