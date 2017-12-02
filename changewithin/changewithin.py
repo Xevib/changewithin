@@ -615,11 +615,21 @@ class DbCache(object):
                           VALUES (%s,%s,%s,ST_SetSRID(st_makeline(%s),4326));
 
         """
+        geom = []
+        has_geom = False
         for node in nodes:
-            geom = "ST_MAKELINE({},{})".format(node.lat, node.lon)
-        cur.execute(insert_sql, (identifier, version, tags, geom))
-        cur.close()
-        self.pending_ways += 1
+            if node.location.valid():
+                geom.append( "ST_MAKEPOINT({},{})".format(node.location.lat, node.location.lon))
+                has_geom = True
+            else:
+                return False
+
+        if has_geom:
+            cur.execute(insert_sql, (identifier, version, tags, ",".join(geom)))
+            cur.close()
+            self.pending_ways += 1
+
+
 
 
 class ChangeWithin(object):
