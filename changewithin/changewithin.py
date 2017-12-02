@@ -141,12 +141,8 @@ class ChangeHandler(osmium.SimpleHandler):
         """
 
         if isinstance(node, dict):
-            if "lat" in node and "lon" in node:
-                lat = node["lat"]
-                lon = node["lon"]
-            elif "x" in node and "y" in node:
-                lat = node["x"]
-                lon = node["y"]
+            lat = node.get("lat")
+            lon = node.get("lon")
         else:
             lat = node["data"]["lat"]
             lon = node["data"]["lon"]
@@ -567,8 +563,8 @@ class DbCache(object):
             return {
                 "id": data[0],
                 "version": data[1],
-                "x": data[2],
-                "y": data[3],
+                "lat": data[2],
+                "lon": data[3],
                 "tags": data[4]
             }
         return None
