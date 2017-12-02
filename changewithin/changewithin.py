@@ -489,7 +489,7 @@ class DbCache(object):
             cur.execute(sql)
             self.con.commit()
 
-    def add_node(self, identifier, version, x, y,tags):
+    def add_node(self, identifier, version, x, y, tags):
         """
         Adds a node to the cache
 
@@ -510,7 +510,7 @@ class DbCache(object):
                           VALUES (%s,%s,%s,ST_SetSRID(ST_MAKEPOINT(%s, %s),4326));
                          
         """
-        cur.execute(insert_sql, (identifier, version,tags, x, y))
+        cur.execute(insert_sql, (identifier, version, tags, x, y))
         cur.close()
         self.pending_nodes += 1
 
