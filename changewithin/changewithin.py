@@ -187,7 +187,7 @@ class ChangeHandler(osmium.SimpleHandler):
                 way = api.WayFull(member.ref)
                 for node in way:
                     if isinstance(node, dict):
-                        for node_id in node.get("nd",[]):
+                        for node_id in node.get("nd", []):
                             n = self.cache.get_node(node_id)
                             if node is None:
                                 node = api.NodeGet(node_id)
@@ -306,7 +306,7 @@ class ChangeHandler(osmium.SimpleHandler):
         self.south = float(south)
         self.west = float(west)
 
-    def node(self, node):
+    def anode(self, node):
         """
         Attends the nodes in the file
 
