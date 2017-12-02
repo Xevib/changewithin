@@ -13,6 +13,9 @@ from osconf import config_from_environment
 import osmapi
 import psycopg2
 import psycopg2.extras
+from psycopg2.extensions import AsIs
+
+
 
 from raven import Client
 
@@ -612,7 +615,7 @@ class DbCache(object):
         """
         cur = self.con.cursor()
         insert_sql = """INSERT INTO cache_way
-                          VALUES (%s,%s,%s,ST_SetSRID(st_makeline(%s),4326));
+                          VALUES (%s,%s,%s,ST_SetSRID(ST_MakeLine(%s),4326));
 
         """
         geom = []
@@ -625,8 +628,7 @@ class DbCache(object):
                 return False
 
         if has_geom:
-            cur.execute(insert_sql, (identifier, version, tags, ",".join(geom)))
-            cur.close()
+            cur.execute(insert_sql, (identifier, version, tags, AsIs(",".join(geom))))
             self.pending_ways += 1
 
 
