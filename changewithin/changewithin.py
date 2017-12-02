@@ -532,6 +532,33 @@ class DbCache(object):
         """
         return  self.pending_ways
 
+    def get_way(self, identifier, version=None):
+        sql_id = """
+                SELECT id,version,st_asgeojson(geo),tags
+                FROM cache_node where id = %s;
+                """
+
+        sql_version = """
+                SELECT id,version,st_asgeojson(geom),tags 
+                FROM cache_node WHERE id= %s AND version=%s;
+                """
+        cur = self.con.cursor()
+        if version is None:
+            cur.execute(sql_id, (identifier,))
+        else:
+            cur.execute(sql_version, (identifier, version))
+
+        data = cur.fetchone()
+        if data:
+            return {
+                "id": data[0],
+                "version": data[1],
+                "x": data[2],
+                "y": data[3],
+                "tags": data[4]
+            }
+        return None
+
     def get_node(self, identifier, version=None):
         """
         Returns a node of the cache, if version is not specified returns the last version avaible
