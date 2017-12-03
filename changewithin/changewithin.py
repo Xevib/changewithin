@@ -186,8 +186,11 @@ class ChangeHandler(osmium.SimpleHandler):
                     if ret:
                         return True
             elif member.type == "w":
-                print "way ref:{}".format(member.ref)
-                way = api.WayFull(member.ref)
+
+                way = self.cache.get_way(member.ref)
+                if way is None:
+                    way = api.WayFull(member.ref)
+                    print "way ref:{}".format(member.ref)
                 for node in way:
                     if isinstance(node, dict):
                         for node_id in node.get("nd", []):
@@ -537,7 +540,7 @@ class DbCache(object):
 
     def get_way(self, identifier, version=None):
         sql_id = """
-                SELECT id,version,st_asgeojson(geo),tags
+                SELECT id,version,st_asgeojson(geom),tags
                 FROM cache_node where id = %s;
                 """
 
