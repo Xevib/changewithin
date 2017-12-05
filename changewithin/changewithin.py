@@ -539,6 +539,16 @@ class DbCache(object):
         return  self.pending_ways
 
     def get_way(self, identifier, version=None):
+        """
+        Gets the way from the cache
+
+        :param identifier: Identifier of the way
+        :type identifier: int
+        :param version: Version of the way
+        :type version: int
+        :return: Data of the way
+        :rtype: dict
+        """
         import json
         sql_id = """
                 SELECT id,version,st_asgeojson(geom),tags
