@@ -539,6 +539,7 @@ class DbCache(object):
         return  self.pending_ways
 
     def get_way(self, identifier, version=None):
+        import json
         sql_id = """
                 SELECT id,version,st_asgeojson(geom),tags
                 FROM cache_node where id = %s;
@@ -559,9 +560,8 @@ class DbCache(object):
             return {
                 "id": data[0],
                 "version": data[1],
-                "x": data[2],
-                "y": data[3],
-                "tags": data[4]
+                "coordinates": json.loads(data[2])["coordinates"],
+                "tags": data[3]
             }
         return None
 
