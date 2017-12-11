@@ -191,7 +191,7 @@ class ChangeHandler(osmium.SimpleHandler):
                 if way is None:
                     way = api.WayFull(member.ref)
                     print "way ref:{}".format(member.ref)
-                for node in way:
+                for node in way.get("coordinates", []):
                     if isinstance(node, dict):
                         for node_id in node.get("nd", []):
                             n = self.cache.get_node(node_id)
