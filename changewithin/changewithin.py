@@ -368,7 +368,7 @@ class ChangeHandler(osmium.SimpleHandler):
         if self.cache and self.cache.get_pending_nodes() > 0:
             self.cache.commit()
         try:
-            if cache:
+            if self.cache:
                 self.cache.add_way(way.id, way.version, way.nodes, self.convert_osmium_tags_dict(way.tags))
             if self.way_in_bbox(way.nodes):
                 for tag_name in self.tags.keys():
