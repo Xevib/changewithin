@@ -193,6 +193,8 @@ class ChangeHandler(osmium.SimpleHandler):
                     print "way ref:{}".format(member.ref)
                 if "coordinates" in way:
                     nodes = way.get("coordinates", [])
+                else:
+                    nodes = way
                 for node in nodes:
                     if isinstance(node, dict):
                         for node_id in node.get("nd", []):
