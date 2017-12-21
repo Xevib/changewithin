@@ -41,7 +41,8 @@ def changeswithin(host, db, user, password, initialize, file):
             else:
                 c.process_file()
             c.report()
-    except Exception:
+    except Exception as e:
+        print(e.message)
         client.captureException()
 
         
