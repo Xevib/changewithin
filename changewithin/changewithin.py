@@ -146,6 +146,9 @@ class ChangeHandler(osmium.SimpleHandler):
         if isinstance(node, dict):
             lat = node.get("lat")
             lon = node.get("lon")
+        elif isinstance(node, list):
+            lat = node[0]
+            lon = node[1]
         else:
             lat = node["data"]["lat"]
             lon = node["data"]["lon"]
