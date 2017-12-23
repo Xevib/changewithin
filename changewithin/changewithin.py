@@ -138,7 +138,8 @@ class ChangeHandler(osmium.SimpleHandler):
         """
         Check if a node id is in the bounding box
 
-        :param node: Node id
+        :param node: Node
+        :type node: dict or list
         :return: True if the node is in the bounding box
         :rtype: bool
         """
