@@ -1,9 +1,11 @@
 dist: trusty
+sudo: true
 language: python
 services:
   - postgres
+
 addons:
-  postgresql: "9.4"
+  postgresql: "9.5"
 python:
   - "2.7"
   - "3.4"
@@ -18,7 +20,10 @@ install:
  - pip install coveralls
  - pip install osmium
 before_script:
+  - sudo apt-cache search postgis
+  - sudo apt-get install -y  postgresql-9.5-postgis-2.3
   - psql -c 'create database changewithin;' -U postgres -h localhost
+  - psql -c "create extension postgis" -U postgres -h localhost -d changewithin
   - psql -f changewithin/schema.sql -U postgres -h localhost -d changewithin
 script:
  - pwd
