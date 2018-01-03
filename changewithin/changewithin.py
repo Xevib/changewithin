@@ -576,10 +576,14 @@ class DbCache(object):
 
         data = cur.fetchone()
         if data:
+            coord = json.loads(data[2])["coordinates"]
+            pairs = []
+            for indx in range(coord)[::2]:
+                pairs.append([coord[indx],coord[indx + 1]])
             return {
                 "id": data[0],
                 "version": data[1],
-                "coordinates": json.loads(data[2])["coordinates"],
+                "coordinates": pairs,
                 "tags": data[3]
             }
         return None
