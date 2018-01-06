@@ -194,6 +194,14 @@ class ChangeHandler(osmium.SimpleHandler):
                 way = self.cache.get_way(member.ref)
                 if way is None:
                     way = api.WayFull(member.ref)
+                    nodes = []
+                    for element in way:
+                        if element["type"] == "way":
+                            version = element["version"]
+                            tags = element["tag"]
+                        else:
+                            nodes.append([element["lat"],element["lon"]])
+                    self.cache.add_way(member.ref, version, nodes, tags)
                     print "way ref:{}".format(member.ref)
                 if "coordinates" in way:
                     nodes = way.get("coordinates", [])
