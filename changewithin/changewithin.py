@@ -560,12 +560,12 @@ class DbCache(object):
         """
         import json
         sql_id = """
-                SELECT id,version,st_asgeojson(geom),tags
+                SELECT id,version,st_asgeojson(geom),tag
                 FROM cache_node where id = %s;
                 """
 
         sql_version = """
-                SELECT id,version,st_asgeojson(geom),tags 
+                SELECT id,version,st_asgeojson(geom),tag
                 FROM cache_node WHERE id= %s AND version=%s;
                 """
         cur = self.con.cursor()
@@ -584,7 +584,7 @@ class DbCache(object):
                 "id": data[0],
                 "version": data[1],
                 "coordinates": pairs,
-                "tags": data[3]
+                "tag": data[3]
             }
         return None
 
@@ -600,12 +600,12 @@ class DbCache(object):
         :rtype:dict
         """
         sql_id = """
-        SELECT id,version,st_x(geom),st_y(geom),tags
+        SELECT id,version,st_x(geom),st_y(geom),tag
         FROM cache_node where id = %s;
         """
 
         sql_version = """
-        SELECT id,version,st_x(geom),st_y(geom),tags 
+        SELECT id,version,st_x(geom),st_y(geom),tag
         FROM cache_node WHERE id= %s AND version=%s;
         """
         cur = self.con.cursor()
@@ -621,7 +621,7 @@ class DbCache(object):
                 "version": data[1],
                 "lat": data[2],
                 "lon": data[3],
-                "tags": data[4]
+                "tag": data[4]
             }
         return None
 
