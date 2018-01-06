@@ -578,7 +578,7 @@ class DbCache(object):
         if data:
             coord = json.loads(data[2])["coordinates"]
             pairs = []
-            for indx in range(coord)[::2]:
+            for indx in range(len(coord))[::2]:
                 pairs.append([coord[indx],coord[indx + 1]])
             return {
                 "id": data[0],
