@@ -320,7 +320,7 @@ class ChangeHandler(osmium.SimpleHandler):
         self.south = float(south)
         self.west = float(west)
 
-    def anode(self, node):
+    def node(self, node):
         """
         Attends the nodes in the file
 
