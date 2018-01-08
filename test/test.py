@@ -42,7 +42,6 @@ class CacheTest(unittest.TestCase):
 
         :return:
         """
-        self.cur.close()
         self.connection.close()
 
     def test_initialize(self):
