@@ -163,7 +163,9 @@ class ChangeHandler(osmium.SimpleHandler):
         :return:
         """
         osm_api = osmapi.OsmApi()
-        way = osm_api.WayGet(way_id)
+        way = self.cache.get_way(way_id)
+        if not way:
+            way = osm_api.WayGet(way_id)
         ret = False
         index = 0
         while not ret and index < len(way["nd"]):
