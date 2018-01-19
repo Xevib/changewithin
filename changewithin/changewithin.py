@@ -627,11 +627,13 @@ class DbCache(object):
         data = cur.fetchone()
         if data:
             return {
-                "id": data[0],
-                "version": data[1],
-                "lat": data[2],
-                "lon": data[3],
-                "tag": data[4]
+                "data": {
+                    "id": data[0],
+                    "version": data[1],
+                    "lat": data[2],
+                    "lon": data[3],
+                    "tag": data[4]
+                }
             }
         return None
 
