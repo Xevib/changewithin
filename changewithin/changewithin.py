@@ -202,7 +202,7 @@ class ChangeHandler(osmium.SimpleHandler):
                             version = element["version"]
                             tags = element["tag"]
                         else:
-                            nodes.append([element["lat"],element["lon"]])
+                            nodes.append([element["data"]["lat"],element["data"]["lon"]])
                     self.cache.add_way(member.ref, version, nodes, tags)
                     print "way ref:{}".format(member.ref)
                 if "coordinates" in way:
