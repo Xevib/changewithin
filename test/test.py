@@ -62,7 +62,8 @@ class CacheTest(unittest.TestCase):
         self.cur = self.connection.cursor()
         self.cur.execute("DELETE FROM cache_node;")
         self.connection.commit()
-        self.cache.add_node(123, 1, 1.23, 2.42,{})
+        self.cache.add_node(123, 1, 1.23, 2.42, {})
+        self.cache.commit()
         self.connection.commit()
         self.cur.execute("SELECT count(*) from cache_node;")
         data = self.cur.fetchall()
@@ -106,13 +107,14 @@ class CacheTest(unittest.TestCase):
         self.cache.add_node(42, 1, 1.23, 2.42,{"building": "yes"})
         self.cache.add_node(42, 2, 2.22, 0.23,{"building": "yes", "name":"test"})
         self.cache.add_node(43, 1, 2.99, 0.99,{})
+        self.connection.commit()
         nod_42 = {
             "data":{
                 "id": 42,
                 "version": 2,
-                "x": 2.22,
-                "y": 0.23,
-                "tags":{
+                "lat": 2.22,
+                "lon": 0.23,
+                "tag": {
                     "building": "yes",
                     "name": "test"
 
@@ -121,11 +123,13 @@ class CacheTest(unittest.TestCase):
         }
 
         nod_43 = {
-            "id": 43,
-            "version": 1,
-            "x": 2.99,
-            "y": 0.99,
-            "tags":{}
+            "data": {
+                "id": 43,
+                "version": 1,
+                "lat": 2.99,
+                "lon": 0.99,
+                "tag": {}
+            }
         }
         self.assertEqual(self.cache.get_node(42, 2), nod_42)
         self.assertEqual(self.cache.get_node(43), nod_43)
