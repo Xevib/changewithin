@@ -1,7 +1,7 @@
 import unittest
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
-from osmium.osm import Location, WayNodeList, Node
+from osmium.osm import Location, WayNodeList, NodeRef
 from changewithin import get_state
 from changewithin.changewithin import DbCache
 import osmapi
@@ -76,11 +76,11 @@ class CacheTest(unittest.TestCase):
         :return: None
         """
 
-        n1 = Node()
+        n1 = NodeRef()
         n1.id = 1
         n1.location = Location(1, 1)
 
-        n2 = Node()
+        n2 = NodeRef()
         n2.id = 2
         n2.location = Location(2, 2)
 
