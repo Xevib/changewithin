@@ -1,11 +1,14 @@
 import unittest
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
-from osmium.osm import Location, WayNodeList, NodeRef
+from osmium.osm import Location, WayNodeList, Node
 from changewithin import get_state
 from changewithin.changewithin import DbCache
 import osmapi
 import psycopg2
+import sys
+if sys.version_info[0] == 2:
+    import mock
 
 
 class LibTest(unittest.TestCase):
@@ -76,22 +79,28 @@ class CacheTest(unittest.TestCase):
         :return: None
         """
 
-        n1 = NodeRef()
-        n1.id = 1
-        n1.location = Location(1, 1)
+        l1 = Location(1, 1)
+        l2 = Location(2, 2)
 
-        n2 = NodeRef()
-        n2.id = 2
-        n2.location = Location(2, 2)
+        if sys.version_info[0] == 2:
+            n1 = mock.MagicMock(id=1,location=l1)
+            n2 = mock.MagicMock(id=2,location=l2)
+        else:
+            n1 = unittest.MagicMock(id=1,location=l1)
+            n2 = unittest.MagicMock(id=2,location=l2)
 
-        nl = WayNodeList([n1, n2])
+        if sys.version_info[0] == 2:
+            nl = [n1, n2]
+        else:
+            nl = [n1, n2]
 
         self.cur = self.connection.cursor()
-        self.cur.execute("DELETE FROM cache_node;")
+        self.cur.execute("DELETE FROM cache_way;")
         self.connection.commit()
         self.cache.add_way(1, 2, nl, {})
+        self.cache.commit()
 
-        self.cur.execute("SELECT count(*) from cache_node;")
+        self.cur.execute("SELECT count(*) from cache_way;")
         data = self.cur.fetchall()
         self.assertEqual(data[0][0], 1)
 
