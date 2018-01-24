@@ -9,7 +9,8 @@ import psycopg2
 import sys
 if sys.version_info[0] == 2:
     import mock
-
+else:
+    from unittest.mock import MagicMock
 
 class LibTest(unittest.TestCase):
     """
@@ -86,8 +87,8 @@ class CacheTest(unittest.TestCase):
             n1 = mock.MagicMock(id=1,location=l1)
             n2 = mock.MagicMock(id=2,location=l2)
         else:
-            n1 = unittest.mock.MagicMock(id=1,location=l1)
-            n2 = unittest.mock.MagicMock(id=2,location=l2)
+            n1 = MagicMock(id=1,location=l1)
+            n2 = MagicMock(id=2,location=l2)
 
         if sys.version_info[0] == 2:
             nl = [n1, n2]
