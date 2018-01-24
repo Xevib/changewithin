@@ -223,7 +223,7 @@ class ChangeHandler(osmium.SimpleHandler):
                         if ret:
                             return True
             else:
-                print "member.type:{}".format(member.type)
+                print("member.type:{}".format(member.type))
 
         # rel_data = api.RelationFull(relation.id)
         # for element in rel_data:
