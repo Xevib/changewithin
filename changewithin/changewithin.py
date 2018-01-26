@@ -145,14 +145,15 @@ class ChangeHandler(osmium.SimpleHandler):
         """
 
         if isinstance(node, dict):
-            lat = node.get("lat")
-            lon = node.get("lon")
+            if 'data' in node:
+                lat = node["data"]["lat"]
+                lon = node["data"]["lon"]
+            else:
+                lat = node.get("lat")
+                lon = node.get("lon")
         elif isinstance(node, list):
             lat = node[0]
             lon = node[1]
-        else:
-            lat = node["data"]["lat"]
-            lon = node["data"]["lon"]
         return self.north > lat > self.south and self.east > lon > self.west
 
     def way_id_in_bbox(self, way_id):
@@ -192,25 +193,28 @@ class ChangeHandler(osmium.SimpleHandler):
                     if ret:
                         return True
             elif member.type == "w":
-
-                way = self.cache.get_way(member.ref)
+                if self.cache_enabled:
+                    way = self.cache.get_way(member.ref)
+                else:
+                    way = None
                 if way is None:
                     way = api.WayFull(member.ref)
                     nodes = []
                     for element in way:
                         if element["type"] == "way":
-                            version = element["version"]
-                            tags = element["tag"]
+                            version = element["data"]["version"]
+                            tags = element["data"]["tag"]
                         else:
                             nodes.append([element["data"]["lat"],element["data"]["lon"]])
-                    self.cache.add_way(member.ref, version, nodes, tags)
+                    if self.cache_enabled:
+                        self.cache.add_way(member.ref, version, nodes, tags)
                     print("way ref:{}".format(member.ref))
                 if "coordinates" in way:
                     nodes = way.get("coordinates", [])
                 else:
                     nodes = way
                 for node in nodes:
-                    if isinstance(node, dict):
+                    if isinstance(node, dict) and node.get("type")!="node":
                         for node_id in node.get("nd", []):
                             n = self.cache.get_node(node_id)
                             if node is None:
@@ -427,8 +431,9 @@ class ChangeHandler(osmium.SimpleHandler):
         # for member in r.members:
         #    print member
         try:
-            if self.cache.get_pending_nodes > 0 or self.cache.get_pending_ways > 0:
-                self.cache.commit()
+            if self.cache_enabled:
+                if self.cache.get_pending_nodes > 0 or self.cache.get_pending_ways > 0:
+                    self.cache.commit()
 
             print ("rel.id {} len:{}".format(rel.id,len(rel.members)))
             if not rel.deleted and self.rel_in_bbox(rel):
@@ -463,7 +468,7 @@ class ChangeHandler(osmium.SimpleHandler):
                                     "rids": {tag_name: [rel.id]}
                                 }
             self.num_rel += 1
-        except Exception:
+        except Exception as e:
             self.sentry_client.captureException()
 
 class DbCache(object):
@@ -590,11 +595,13 @@ class DbCache(object):
             pairs = []
             for indx in range(len(coord))[::2]:
                 pairs.append([coord[indx],coord[indx + 1]])
-            return {
-                "id": data[0],
-                "version": data[1],
-                "coordinates": pairs,
-                "tag": data[3]
+            return {"data":
+                {
+                    "id": data[0],
+                    "version": data[1],
+                    "coordinates": pairs,
+                    "tag": data[3]
+                }
             }
         return None
 
