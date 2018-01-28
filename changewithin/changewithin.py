@@ -13,6 +13,9 @@ from osconf import config_from_environment
 import osmapi
 import psycopg2
 import psycopg2.extras
+from psycopg2.extensions import AsIs
+
+
 
 from raven import Client
 
@@ -135,12 +138,23 @@ class ChangeHandler(osmium.SimpleHandler):
         """
         Check if a node id is in the bounding box
 
-        :param node: Node id
+        :param node: Node
+        :type node: dict or list
         :return: True if the node is in the bounding box
         :rtype: bool
         """
 
-        return self.north > node["data"]["lat"] > self.south and self.east > node["data"]["lon"] > self.west
+        if isinstance(node, dict):
+            if 'data' in node:
+                lat = node["data"]["lat"]
+                lon = node["data"]["lon"]
+            else:
+                lat = node.get("lat")
+                lon = node.get("lon")
+        elif isinstance(node, list):
+            lat = node[0]
+            lon = node[1]
+        return self.north > lat > self.south and self.east > lon > self.west
 
     def way_id_in_bbox(self, way_id):
         """
@@ -150,7 +164,9 @@ class ChangeHandler(osmium.SimpleHandler):
         :return:
         """
         osm_api = osmapi.OsmApi()
-        way = osm_api.WayGet(way_id)
+        way = self.cache.get_way(way_id)
+        if not way:
+            way = osm_api.WayGet(way_id)
         ret = False
         index = 0
         while not ret and index < len(way["nd"]):
@@ -167,13 +183,59 @@ class ChangeHandler(osmium.SimpleHandler):
         :rtype: bool
         """
         api = osmapi.OsmApi()
-        rel_data = api.RelationFull(relation.id)
-        for element in rel_data:
-            if element["type"] == "node":
-                ret = self.node_in_bbox(element)
-                if ret:
-                    return True
-        return False
+        for member in relation.members:
+            if member.type == "n":
+                if self.cache_enabled:
+                    node = self.cache.get_node(member.ref)
+                    if node is None:
+                        node = api.NodeGet(member.ref)
+                    ret = self.node_in_bbox(node)
+                    if ret:
+                        return True
+            elif member.type == "w":
+                if self.cache_enabled:
+                    way = self.cache.get_way(member.ref)
+                else:
+                    way = None
+                if way is None:
+                    way = api.WayFull(member.ref)
+                    nodes = []
+                    for element in way:
+                        if element["type"] == "way":
+                            version = element["data"]["version"]
+                            tags = element["data"]["tag"]
+                        else:
+                            nodes.append([element["data"]["lat"],element["data"]["lon"]])
+                    if self.cache_enabled:
+                        self.cache.add_way(member.ref, version, nodes, tags)
+                    print("way ref:{}".format(member.ref))
+                if "coordinates" in way:
+                    nodes = way.get("coordinates", [])
+                else:
+                    nodes = way
+                for node in nodes:
+                    if isinstance(node, dict) and node.get("type")!="node":
+                        for node_id in node.get("nd", []):
+                            n = self.cache.get_node(node_id)
+                            if node is None:
+                                node = api.NodeGet(node_id)
+                            ret = self.node_in_bbox(n)
+                            if ret:
+                                return True
+                    else:
+                        ret = self.node_in_bbox(node)
+                        if ret:
+                            return True
+            else:
+                print("member.type:{}".format(member.type))
+
+        # rel_data = api.RelationFull(relation.id)
+        # for element in rel_data:
+        #     if element["type"] == "node":
+        #         ret = self.node_in_bbox(element)
+        #         if ret:
+        #             return True
+        # return False
 
     def has_tag_changed(self, gid, old_tags, watch_tags, version, elem):
         """
@@ -325,7 +387,11 @@ class ChangeHandler(osmium.SimpleHandler):
         :param way: Way to check
         :return: None
         """
+        if self.cache and self.cache.get_pending_nodes() > 0:
+            self.cache.commit()
         try:
+            if self.cache:
+                self.cache.add_way(way.id, way.version, way.nodes, self.convert_osmium_tags_dict(way.tags))
             if self.way_in_bbox(way.nodes):
                 for tag_name in self.tags.keys():
                     key_re = self.tags[tag_name]["key_re"]
@@ -364,40 +430,46 @@ class ChangeHandler(osmium.SimpleHandler):
         # print 'rel:{}'.format(self.num_rel)
         # for member in r.members:
         #    print member
-        print ("rel.id {}".format(rel.id))
-        # if not rel.deleted and self.rel_in_bbox(rel):
-        #     for tag_name in self.tags.keys():
-        #         key_re = self.tags[tag_name]["key_re"]
-        #         value_re = self.tags[tag_name]["value_re"]
-        #         if self.has_tag(rel.tags, key_re, value_re):
-        #             if rel.deleted:
-        #                 add_rel = True
-        #             elif rel.version == 1:
-        #                 add_rel = True
-        #             else:
-        #                 rel_tags = self.convert_osmium_tags_dict(rel.tags)
-        #                 add_rel = self.has_tag_changed(rel.id, rel_tags, key_re, rel.version, "relation")
-        #             if add_rel:
-        #                 if tag_name in self.stats:
-        #                     self.stats[tag_name].add(rel.changeset)
-        #                 else:
-        #                     self.stats[tag_name] = [rel.changeset]
-        #                 if rel.changeset in self.changeset:
-        #                     if tag_name not in self.changeset[rel.changeset]["rids"]:
-        #                         self.changeset[rel.changeset]["rids"][tag_name] = []
-        #                     self.changeset[rel.changeset]["rids"][
-        #                         tag_name].append(rel.id)
-        #                 else:
-        #                     self.changeset[rel.changeset] = {
-        #                         "changeset": rel.changeset,
-        #                         "user": rel.user,
-        #                         "uid": rel.uid,
-        #                         "nids": {},
-        #                         "wids": {},
-        #                         "rids": {tag_name: [rel.id]}
-        #                     }
-        self.num_rel += 1
+        try:
+            if self.cache_enabled:
+                if self.cache.get_pending_nodes > 0 or self.cache.get_pending_ways > 0:
+                    self.cache.commit()
 
+            print ("rel.id {} len:{}".format(rel.id,len(rel.members)))
+            if not rel.deleted and self.rel_in_bbox(rel):
+                for tag_name in self.tags.keys():
+                    key_re = self.tags[tag_name]["key_re"]
+                    value_re = self.tags[tag_name]["value_re"]
+                    if self.has_tag(rel.tags, key_re, value_re):
+                        if rel.deleted:
+                            add_rel = True
+                        elif rel.version == 1:
+                            add_rel = True
+                        else:
+                            rel_tags = self.convert_osmium_tags_dict(rel.tags)
+                            add_rel = self.has_tag_changed(rel.id, rel_tags, key_re, rel.version, "relation")
+                        if add_rel:
+                            if tag_name in self.stats:
+                                self.stats[tag_name].add(rel.changeset)
+                            else:
+                                self.stats[tag_name] = [rel.changeset]
+                            if rel.changeset in self.changeset:
+                                if tag_name not in self.changeset[rel.changeset]["rids"]:
+                                    self.changeset[rel.changeset]["rids"][tag_name] = []
+                                self.changeset[rel.changeset]["rids"][
+                                    tag_name].append(rel.id)
+                            else:
+                                self.changeset[rel.changeset] = {
+                                    "changeset": rel.changeset,
+                                    "user": rel.user,
+                                    "uid": rel.uid,
+                                    "nids": {},
+                                    "wids": {},
+                                    "rids": {tag_name: [rel.id]}
+                                }
+            self.num_rel += 1
+        except Exception as e:
+            self.sentry_client.captureException()
 
 class DbCache(object):
 
@@ -420,6 +492,18 @@ class DbCache(object):
         self.password = password
         self.con = psycopg2.connect(host=self.host, database=self.database, user=self.user,password=self.password)
         psycopg2.extras.register_hstore(self.con)
+        self.pending_nodes = 0
+        self.pending_ways = 0
+
+    def commit(self):
+        """
+        Commits the data of the connection
+
+        :return: None
+        """
+        self.pending_nodes = 0
+        self.pending_ways = 0
+        self.con.commit()
 
     def initialize(self):
         """
@@ -435,7 +519,7 @@ class DbCache(object):
             cur.execute(sql)
             self.con.commit()
 
-    def add_node(self, identifier, version, x, y,tags):
+    def add_node(self, identifier, version, x, y, tags):
         """
         Adds a node to the cache
 
@@ -456,9 +540,70 @@ class DbCache(object):
                           VALUES (%s,%s,%s,ST_SetSRID(ST_MAKEPOINT(%s, %s),4326));
                          
         """
-        cur.execute(insert_sql, (identifier, version,tags, x, y))
-        self.con.commit()
+        cur.execute(insert_sql, (identifier, version, tags, x, y))
         cur.close()
+        self.pending_nodes += 1
+
+    def get_pending_nodes(self):
+        """
+        Gets the pending to commit nodes
+
+        :return: Pending nodes
+        :rtype: int
+        """
+        return self.pending_nodes
+
+    def get_pending_ways(self):
+        """
+        Gets the pending to commit ways
+
+        :return: Pending ways
+        :rtype: int
+        """
+        return  self.pending_ways
+
+    def get_way(self, identifier, version=None):
+        """
+        Gets the way from the cache
+
+        :param identifier: Identifier of the way
+        :type identifier: int
+        :param version: Version of the way
+        :type version: int
+        :return: Data of the way
+        :rtype: dict
+        """
+        import json
+        sql_id = """
+                SELECT id,version,st_asgeojson(geom),tag
+                FROM cache_node where id = %s;
+                """
+
+        sql_version = """
+                SELECT id,version,st_asgeojson(geom),tag
+                FROM cache_node WHERE id= %s AND version=%s;
+                """
+        cur = self.con.cursor()
+        if version is None:
+            cur.execute(sql_id, (identifier,))
+        else:
+            cur.execute(sql_version, (identifier, version))
+
+        data = cur.fetchone()
+        if data:
+            coord = json.loads(data[2])["coordinates"]
+            pairs = []
+            for indx in range(len(coord))[::2]:
+                pairs.append([coord[indx],coord[indx + 1]])
+            return {"data":
+                {
+                    "id": data[0],
+                    "version": data[1],
+                    "coordinates": pairs,
+                    "tag": data[3]
+                }
+            }
+        return None
 
     def get_node(self, identifier, version=None):
         """
@@ -472,12 +617,12 @@ class DbCache(object):
         :rtype:dict
         """
         sql_id = """
-        SELECT id,version,st_x(geom),st_y(geom),tags
+        SELECT id,version,st_x(geom),st_y(geom),tag
         FROM cache_node where id = %s;
         """
 
         sql_version = """
-        SELECT id,version,st_x(geom),st_y(geom),tags 
+        SELECT id,version,st_x(geom),st_y(geom),tag
         FROM cache_node WHERE id= %s AND version=%s;
         """
         cur = self.con.cursor()
@@ -489,13 +634,49 @@ class DbCache(object):
         data = cur.fetchone()
         if data:
             return {
-                "id": data[0],
-                "version": data[1],
-                "x": data[2],
-                "y": data[3],
-                "tags": data[4]
+                "data": {
+                    "id": data[0],
+                    "version": data[1],
+                    "lat": data[2],
+                    "lon": data[3],
+                    "tag": data[4]
+                }
             }
         return None
+
+    def add_way(self, identifier, version, nodes, tags):
+        """
+        Adds a way into the cache
+
+        :param identifier: identifier of the way to store
+        :type identifier: int
+        :param version: version of the way
+        :type version: int
+        :param nodes: Nodes to store
+        :param tags: Tags to store
+        :type tags: dict
+        :return: None
+        :rtype: None
+        """
+        cur = self.con.cursor()
+        insert_sql = """INSERT INTO cache_way
+                          VALUES (%s,%s,%s,ST_SetSRID(ST_MakeLine(ARRAY[%s]),4326));
+
+        """
+        geom = []
+        has_geom = False
+        for node in nodes:
+            if node.location.valid():
+                geom.append( "ST_MAKEPOINT({},{})".format(node.location.lat, node.location.lon))
+                has_geom = True
+            else:
+                return False
+
+        if has_geom:
+            cur.execute(insert_sql, (identifier, version, tags, AsIs(",".join(geom))))
+            self.pending_ways += 1
+
+
 
 
 class ChangeWithin(object):

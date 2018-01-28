@@ -1,12 +1,16 @@
 import unittest
 from changewithin import ChangeWithin
 from changewithin import ChangeHandler
-from osmium.osm import Location
+from osmium.osm import Location, WayNodeList, Node
 from changewithin import get_state
 from changewithin.changewithin import DbCache
 import osmapi
 import psycopg2
-
+import sys
+if sys.version_info[0] == 2:
+    import mock
+else:
+    from unittest.mock import MagicMock
 
 class LibTest(unittest.TestCase):
     """
@@ -42,7 +46,6 @@ class CacheTest(unittest.TestCase):
 
         :return:
         """
-        self.cur.close()
         self.connection.close()
 
     def test_initialize(self):
@@ -63,8 +66,42 @@ class CacheTest(unittest.TestCase):
         self.cur = self.connection.cursor()
         self.cur.execute("DELETE FROM cache_node;")
         self.connection.commit()
-        self.cache.add_node(123, 1, 1.23, 2.42,{})
+        self.cache.add_node(123, 1, 1.23, 2.42, {})
+        self.cache.commit()
+        self.connection.commit()
         self.cur.execute("SELECT count(*) from cache_node;")
+        data = self.cur.fetchall()
+        self.assertEqual(data[0][0], 1)
+
+    def test_add_way(self):
+        """
+        Tests how to add a way to the cache
+
+        :return: None
+        """
+
+        l1 = Location(1, 1)
+        l2 = Location(2, 2)
+
+        if sys.version_info[0] == 2:
+            n1 = mock.MagicMock(id=1,location=l1)
+            n2 = mock.MagicMock(id=2,location=l2)
+        else:
+            n1 = MagicMock(id=1,location=l1)
+            n2 = MagicMock(id=2,location=l2)
+
+        if sys.version_info[0] == 2:
+            nl = [n1, n2]
+        else:
+            nl = [n1, n2]
+
+        self.cur = self.connection.cursor()
+        self.cur.execute("DELETE FROM cache_way;")
+        self.connection.commit()
+        self.cache.add_way(1, 2, nl, {})
+        self.cache.commit()
+
+        self.cur.execute("SELECT count(*) from cache_way;")
         data = self.cur.fetchall()
         self.assertEqual(data[0][0], 1)
 
@@ -80,24 +117,29 @@ class CacheTest(unittest.TestCase):
         self.cache.add_node(42, 1, 1.23, 2.42,{"building": "yes"})
         self.cache.add_node(42, 2, 2.22, 0.23,{"building": "yes", "name":"test"})
         self.cache.add_node(43, 1, 2.99, 0.99,{})
+        self.connection.commit()
         nod_42 = {
-            "id": 42,
-            "version": 2,
-            "x": 2.22,
-            "y": 0.23,
-            "tags":{
-                "building": "yes",
-                "name": "test"
+            "data":{
+                "id": 42,
+                "version": 2,
+                "lat": 2.22,
+                "lon": 0.23,
+                "tag": {
+                    "building": "yes",
+                    "name": "test"
 
+                }
             }
         }
 
         nod_43 = {
-            "id": 43,
-            "version": 1,
-            "x": 2.99,
-            "y": 0.99,
-            "tags":{}
+            "data": {
+                "id": 43,
+                "version": 1,
+                "lat": 2.99,
+                "lon": 0.99,
+                "tag": {}
+            }
         }
         self.assertEqual(self.cache.get_node(42, 2), nod_42)
         self.assertEqual(self.cache.get_node(43), nod_43)
@@ -268,8 +310,8 @@ class ChangesWithinTest(unittest.TestCase):
         self.assertEqual(self.cw.handler.west, 2.7847)
         self.cw.handler.set_tags("all", ".*", ".*", ["node", "way"])
         self.cw.process_file("test/test_rel.osc")
-        #self.assertTrue(41928815 in self.cw.changesets)
-        #self.assertTrue(343535 in self.cw.changesets[41928815]["rids"]["all"])
+        self.assertTrue(41928815 in self.cw.changesets)
+        self.assertTrue(343535 in self.cw.changesets[41928815]["rids"]["all"])
 
 
 if __name__ == '__main__':
