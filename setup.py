@@ -5,7 +5,7 @@ requirements = data.split()
 
 setup(
     name='changewithin',
-    version='0.1.0',
+    version='0.1.1',
     packages=find_packages(),
     url='https://github.com/Xevib/changeswihtin',
     license='MIT',
