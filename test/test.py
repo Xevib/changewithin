@@ -161,6 +161,8 @@ class CacheTest(unittest.TestCase):
         self.assertEqual(expected_data, way)
         way2 = self.cache.get_way(1)
         self.assertEqual(way2, expected_data)
+        way_none = self.cache.get_way(23212)
+        self.assertIsNone(way_none)
 
     def test_get_node(self):
         """
