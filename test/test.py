@@ -154,7 +154,7 @@ class CacheTest(unittest.TestCase):
                 "id": 1,
                 "version": 2,
                 "tag": {},
-                "xordinates": [[[1, 1], [2, 2]]]
+                "coordinates": [[[1, 1], [2, 2]]]
             }
 
         }
