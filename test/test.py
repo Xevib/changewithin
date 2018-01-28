@@ -87,6 +87,35 @@ class CacheTest(unittest.TestCase):
         zero_pending = self.cache.get_pending_nodes()
         self.assertEqual(0, zero_pending)
 
+    def test_check_pending_ways(self):
+        """
+
+        :return:
+        """
+        l1 = Location(1, 1)
+        l2 = Location(2, 2)
+
+        if sys.version_info[0] == 2:
+            n1 = mock.MagicMock(id=1, location=l1)
+            n2 = mock.MagicMock(id=2, location=l2)
+        else:
+            n1 = MagicMock(id=1, location=l1)
+            n2 = MagicMock(id=2, location=l2)
+
+        if sys.version_info[0] == 2:
+            nl = [n1, n2]
+        else:
+            nl = [n1, n2]
+
+        self.cur = self.connection.cursor()
+        pending = self.cache.get_pending_ways()
+        self.cache.add_way(10, 2, nl, {})
+        pending_new = self.cache.get_pending_ways()
+        self.assertEqual(pending+1, pending_new)
+        self.cache.commit()
+        pending_zero = self.cache.get_pending_ways()
+        self.assertEqual(0, pending_zero)
+
     def test_add_way(self):
         """
         Tests how to add a way to the cache
