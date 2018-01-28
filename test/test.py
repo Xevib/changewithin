@@ -147,6 +147,18 @@ class CacheTest(unittest.TestCase):
         self.cur.execute("SELECT count(*) from cache_way;")
         data = self.cur.fetchall()
         self.assertEqual(data[0][0], 1)
+        self.cache.commit()
+        way = self.cache.get_way(1, 2)
+        expected_data = {
+            "data": {
+                "id": 1,
+                "version": 2,
+                "tag": {},
+                "xordinates": [[[1, 1], [2, 2]]]
+            }
+
+        }
+        self.assertEqual(expected_data, way)
 
     def test_get_node(self):
         """

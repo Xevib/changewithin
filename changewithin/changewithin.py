@@ -576,12 +576,12 @@ class DbCache(object):
         import json
         sql_id = """
                 SELECT id,version,st_asgeojson(geom),tag
-                FROM cache_node where id = %s;
+                FROM cache_way where id = %s;
                 """
 
         sql_version = """
                 SELECT id,version,st_asgeojson(geom),tag
-                FROM cache_node WHERE id= %s AND version=%s;
+                FROM cache_way WHERE id= %s AND version=%s;
                 """
         cur = self.con.cursor()
         if version is None:
